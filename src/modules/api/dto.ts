@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { Token } from '../../types';
 
 export class GetAuthTokenDto {
   @ApiProperty()
@@ -16,7 +17,8 @@ export class AuthTokenResponse {
   access_token: string;
 }
 
-export class BuildTokenDto {
+// todo add validators
+export class BuildTokenDto implements Token {
   @ApiProperty()
   collectionId: number;
 

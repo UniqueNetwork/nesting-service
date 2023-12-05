@@ -1,7 +1,7 @@
-import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as fs from 'fs';
 import { ApiModule } from '../api';
+import { INestApplication } from '@nestjs/common';
 
 const runInfoFile = './config/run-info.txt';
 const runInfo = fs.existsSync(runInfoFile)
@@ -9,7 +9,7 @@ const runInfo = fs.existsSync(runInfoFile)
   : '';
 console.log('runInfo', runInfo);
 
-export function addSwagger(app: NestExpressApplication) {
+export function addSwagger(app: INestApplication) {
   const config = new DocumentBuilder()
     .addSecurity('JWT', {
       description: 'Example: <code>Bearer {token here}</code>',
