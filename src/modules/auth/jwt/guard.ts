@@ -12,7 +12,10 @@ import { InputRequest } from '../../../types';
 @Injectable()
 export class AuthGuard implements CanActivate {
   private readonly authConfig: AuthConfig;
-  constructor(config: ConfigService, private jwtService: JwtService) {
+  constructor(
+    private jwtService: JwtService,
+    config: ConfigService,
+  ) {
     this.authConfig = config.getOrThrow('auth');
   }
 

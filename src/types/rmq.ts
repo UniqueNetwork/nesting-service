@@ -8,4 +8,5 @@ export enum RmqQueues {
 
 export enum RmqPatterns {
   BUILD_TOKEN = 'buildToken',
+  RENDER_IMAGES = 'renderImages',
 }

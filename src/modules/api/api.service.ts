@@ -17,7 +17,7 @@ export class ApiService {
 
   constructor(
     @Inject(RmqServiceNames.ANALYZER_QUEUE_SERVICE)
-    private client: ClientProxy,
+    private rmqClient: ClientProxy,
   ) {}
 
   public async getAuthToken(body: GetAuthTokenDto): Promise<AuthTokenResponse> {
@@ -49,7 +49,7 @@ export class ApiService {
   public async buildToken(dto: BuildTokenDto): Promise<any> {
     this.logger.log('Add token to queue', dto);
 
-    const sendResult = this.client.emit(RmqPatterns.BUILD_TOKEN, {
+    const sendResult = this.rmqClient.emit(RmqPatterns.BUILD_TOKEN, {
       ...dto,
     });
 

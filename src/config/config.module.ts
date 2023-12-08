@@ -1,8 +1,8 @@
 import { ConfigModule } from '@nestjs/config';
-import { loadConfig } from './load.config';
+import { configLoad } from './config.load';
 
 export const GlobalConfigModule = ConfigModule.forRoot({
   isGlobal: true,
-  load: [loadConfig],
+  load: [configLoad],
   validate: undefined,
 });
