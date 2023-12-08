@@ -4,24 +4,25 @@ import {
   RenderTokenInfo,
   RmqPatterns,
   RmqServiceNames,
-  Token,
+  TokenInfo,
 } from '../../types';
-import { Sdk } from '@unique-nft/sdk/full';
 import { ClientProxy } from '@nestjs/microservices';
 import { lastValueFrom } from 'rxjs';
 import { TokenByIdResponse } from '@unique-nft/sdk';
+import { SdkService } from '../sdk';
 
 @Injectable()
 export class AnalyzerService {
   private logger = new Logger(AnalyzerService.name);
 
   constructor(
-    private readonly sdk: Sdk,
+    private readonly sdkService: SdkService,
     @Inject(RmqServiceNames.ANALYZER_QUEUE_SERVICE)
     private rmqClient: ClientProxy,
   ) {}
 
   private getTokenImageLayer(
+    chain: string,
     token: TokenByIdResponse,
     searchImageOutsideOfSchema: boolean,
   ): RenderImage | null {
@@ -48,16 +49,18 @@ export class AnalyzerService {
     }
 
     this.logger.warn(
-      `Couldn't find an image for token ${token.collectionId}/${token.tokenId}!`,
+      `Couldn't find an image for token ${chain}- ${token.collectionId}/${token.tokenId}!`,
     );
     return null;
   }
 
-  public async buildToken(tokenInfo: Token): Promise<void> {
+  public async buildToken(tokenInfo: TokenInfo): Promise<void> {
     this.logger.log('Build token', tokenInfo);
+    const { chain, collectionId, tokenId } = tokenInfo;
+
     const [bundle, token] = await Promise.all([
-      this.sdk.token.getBundle(tokenInfo),
-      this.sdk.token.get(tokenInfo),
+      this.sdkService.getBundle({ chain, collectionId, tokenId }),
+      this.sdkService.getToken({ chain, collectionId, tokenId }),
     ]);
 
     if (!bundle.nestingChildTokens.length) {
@@ -65,27 +68,37 @@ export class AnalyzerService {
     }
 
     const nestedTokens = await Promise.all(
-      bundle.nestingChildTokens.map((nested) => this.sdk.token.get(nested)),
+      bundle.nestingChildTokens.map((nested) =>
+        this.sdkService.getToken({
+          chain,
+          collectionId: nested.collectionId,
+          tokenId: nested.tokenId,
+        }),
+      ),
     );
 
     const images: RenderImage[] = [
-      this.getTokenImageLayer(token, true),
+      this.getTokenImageLayer(chain, token, true),
       ...nestedTokens.map((nestedToken) =>
-        this.getTokenImageLayer(nestedToken, true),
+        this.getTokenImageLayer(chain, nestedToken, true),
       ),
     ].filter((image) => !!image);
 
     if (!images.length) {
       this.logger.log(
-        `No images to render token: ${tokenInfo.collectionId}/${tokenInfo.tokenId}!`,
+        `No images to render token: ${chain}-${collectionId}/${tokenId}!`,
       );
       return;
     }
 
     const renderInfo: RenderTokenInfo = {
-      token: tokenInfo,
+      token: {
+        chain,
+        collectionId,
+        tokenId,
+      },
       images,
-      filename: `${tokenInfo.collectionId}-${tokenInfo.tokenId}.png`,
+      filename: `${chain}/${collectionId}-${tokenId}.png`,
     };
 
     await lastValueFrom(

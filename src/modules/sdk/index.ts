@@ -1,1 +1,1 @@
-export * from './sdk.provider';
+export * from './sdk.service';

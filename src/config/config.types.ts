@@ -8,8 +8,9 @@ export interface RabbitMQConfig {
 }
 
 export interface SdkConfig {
-  seed?: string;
-  url: string;
+  opalUrl: string;
+  quartzUrl: string;
+  uniqueUrl: string;
 }
 
 export interface RenderConfig {

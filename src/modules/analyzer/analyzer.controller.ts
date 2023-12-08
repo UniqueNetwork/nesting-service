@@ -1,6 +1,6 @@
 import { Controller, Inject } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
-import { RmqPatterns, Token } from '../../types';
+import { RmqPatterns, TokenInfo } from '../../types';
 import { AnalyzerService } from './analyzer.service';
 
 @Controller()
@@ -9,7 +9,9 @@ export class AnalyzerController {
   private analyzerService: AnalyzerService;
 
   @MessagePattern(RmqPatterns.BUILD_TOKEN)
-  public async buildTokenReceiver(@Payload() payload: Token): Promise<void> {
+  public async buildTokenReceiver(
+    @Payload() payload: TokenInfo,
+  ): Promise<void> {
     await this.analyzerService.buildToken(payload);
   }
 }

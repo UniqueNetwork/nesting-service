@@ -18,8 +18,9 @@ const loadRmq = (): RabbitMQConfig => ({
 });
 
 const loadSdk = (): SdkConfig => ({
-  seed: process.env['SDK_SEED'],
-  url: process.env['SDK_URL']!,
+  opalUrl: process.env['OPAL_REST_URL']!,
+  quartzUrl: process.env['QUARTZ_REST_URL']!,
+  uniqueUrl: process.env['UNIQUE_REST_URL']!,
 });
 
 const loadRender = (): RenderConfig => ({
