@@ -13,6 +13,7 @@ import {
   NotFoundExceptionFilter,
 } from '../utils/exception.filters';
 import { APP_FILTER } from '@nestjs/core';
+import { MinioModule } from '../storage';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { APP_FILTER } from '@nestjs/core';
     ApiModule,
     AnalyzerModule,
     RenderModule,
+    MinioModule,
   ],
   providers: [
     {

@@ -1,6 +1,7 @@
 import {
   AppConfig,
   AuthConfig,
+  MinioConfig,
   RabbitMQConfig,
   RenderConfig,
   SdkConfig,
@@ -27,11 +28,20 @@ const loadRender = (): RenderConfig => ({
   imagesDir: process.env['RENDER_IMAGES_DIR'],
 });
 
+const loadMinio = (): MinioConfig => ({
+  endPoint: process.env['MINIO_END_POINT'],
+  accessKey: process.env['MINIO_ACCESS_KEY'],
+  secretKey: process.env['MINIO_SECRET_KEY'],
+  bucketName: process.env['MINIO_BUCKET_NAME'],
+  filenameTemplate: process.env['MINIO_FILENAME_TEMPLATE'] || null,
+});
+
 export const configLoad = (): AppConfig => {
   return {
     auth: loadAuth(),
     rmq: loadRmq(),
     sdk: loadSdk(),
     render: loadRender(),
+    minio: loadMinio(),
   };
 };

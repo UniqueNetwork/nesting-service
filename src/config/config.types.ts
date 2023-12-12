@@ -17,9 +17,18 @@ export interface RenderConfig {
   imagesDir: string;
 }
 
+export interface MinioConfig {
+  endPoint: string;
+  accessKey: string;
+  secretKey: string;
+  bucketName: string;
+  filenameTemplate: string | null;
+}
+
 export interface AppConfig {
   auth: AuthConfig;
   rmq: RabbitMQConfig;
   sdk: SdkConfig;
   render: RenderConfig;
+  minio: MinioConfig;
 }

@@ -3,6 +3,7 @@ import { RenderImage, RenderTokenInfo } from '../../types';
 import Jimp from 'jimp';
 import { ConfigService } from '@nestjs/config';
 import { RenderConfig } from '../../config';
+import { MinioService } from '../storage';
 
 @Injectable()
 export class RenderService {
@@ -10,7 +11,10 @@ export class RenderService {
 
   private renderConfig: RenderConfig;
 
-  constructor(config: ConfigService) {
+  constructor(
+    config: ConfigService,
+    private readonly minioService: MinioService,
+  ) {
     this.renderConfig = config.getOrThrow<RenderConfig>('render');
   }
 
@@ -29,12 +33,19 @@ export class RenderService {
   public async render(renderInfo: RenderTokenInfo): Promise<void> {
     this.logger.log('Render token', renderInfo);
 
-    const { images, filename } = renderInfo;
+    const { images, filename, token } = renderInfo;
 
     const mergedJimp = await this.mergeImages(images);
 
     const outputFilePath = `${this.renderConfig.imagesDir}/${filename}`;
 
     await mergedJimp.writeAsync(outputFilePath);
+
+    this.logger.log('render complete');
+
+    await this.minioService.uploadFile({
+      token,
+      filePath: outputFilePath,
+    });
   }
 }
