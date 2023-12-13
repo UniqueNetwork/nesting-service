@@ -1,19 +1,22 @@
 import { AuthTokenResponse, BuildTokenDto, GetAuthTokenDto } from './dto';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { AuthService } from '../auth/auth.service';
-import { stringToU8a } from '@polkadot/util';
 import { signatureVerify } from '@polkadot/util-crypto';
 import { UnauthorizedException } from '@nestjs/common/exceptions/unauthorized.exception';
 import { ClientProxy } from '@nestjs/microservices';
 import { catchError } from 'rxjs';
-import { RmqPatterns, RmqServiceNames } from '../../types';
+import { RmqPatterns, RmqServiceNames, TokenInfo } from '../../types';
+import { SdkService } from '../sdk';
 
 @Injectable()
 export class ApiService {
-  private logger = new Logger(ApiService.name);
+  private readonly logger = new Logger(ApiService.name);
 
   @Inject(AuthService)
-  private authService: AuthService;
+  private readonly authService: AuthService;
+
+  @Inject(SdkService)
+  private readonly sdk: SdkService;
 
   constructor(
     @Inject(RmqServiceNames.ANALYZER_QUEUE_SERVICE)
@@ -32,8 +35,7 @@ export class ApiService {
       };
     }
 
-    const messageU8a = stringToU8a(message);
-    const { isValid } = signatureVerify(messageU8a, signature, address);
+    const { isValid } = signatureVerify(message, signature, address);
 
     if (!isValid) {
       throw new UnauthorizedException('Invalid signature');
@@ -46,8 +48,32 @@ export class ApiService {
     };
   }
 
-  public async buildToken(dto: BuildTokenDto): Promise<any> {
+  private async checkOwner(
+    address: string,
+    tokenInfo: TokenInfo,
+  ): Promise<void> {
+    const { chain, collectionId, tokenId } = tokenInfo;
+
+    const token = await this.sdk.getTokenOwner({
+      chain,
+      collectionId,
+      tokenId,
+    });
+
+    if (address !== token.owner) {
+      throw new UnauthorizedException(
+        {
+          tokenInfo,
+        },
+        'The token does not belong to you',
+      );
+    }
+  }
+
+  public async buildToken(address: string, dto: BuildTokenDto): Promise<any> {
     this.logger.log('Add token to queue', dto);
+
+    await this.checkOwner(address, dto);
 
     const sendResult = this.rmqClient.emit(RmqPatterns.BUILD_TOKEN, {
       ...dto,

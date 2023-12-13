@@ -3,7 +3,7 @@ import { GetBundleResponse, TokenByIdResponse } from '@unique-nft/sdk';
 import { ChainType, TokenInfo } from '../../types';
 import { ConfigService } from '@nestjs/config';
 import { SdkConfig } from '../../config';
-import { Sdk } from '@unique-nft/sdk/full';
+import { Sdk, TokenOwnerResponse } from '@unique-nft/sdk/full';
 
 @Injectable()
 export class SdkService {
@@ -27,5 +27,13 @@ export class SdkService {
     const { chain, collectionId, tokenId } = tokenInfo;
 
     return this.sdkByChain[chain].token.getBundle({ collectionId, tokenId });
+  }
+
+  public async getTokenOwner(
+    tokenInfo: TokenInfo,
+  ): Promise<TokenOwnerResponse> {
+    const { chain, collectionId, tokenId } = tokenInfo;
+
+    return this.sdkByChain[chain].token.owner({ collectionId, tokenId });
   }
 }

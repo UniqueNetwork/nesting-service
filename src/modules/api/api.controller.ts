@@ -36,6 +36,7 @@ export class ApiController {
   @UseGuards(AuthGuard)
   @ApiBearerAuth('JWT')
   async buildToken(@Request() req: InputRequest, @Body() body: BuildTokenDto) {
-    return this.apiService.buildToken(body);
+    const { jwtPayload } = req;
+    return this.apiService.buildToken(jwtPayload.address, body);
   }
 }
