@@ -75,9 +75,12 @@ export class ApiService {
 
     await this.checkOwner(address, dto);
 
-    const sendResult = this.rmqClient.emit(RmqPatterns.BUILD_TOKEN, {
-      ...dto,
-    });
+    const sendResult = this.rmqClient.emit<any, TokenInfo>(
+      RmqPatterns.BUILD_TOKEN,
+      {
+        ...dto,
+      },
+    );
 
     sendResult
       .pipe(
