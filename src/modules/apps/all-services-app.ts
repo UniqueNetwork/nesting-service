@@ -14,6 +14,7 @@ import {
 } from '../utils/exception.filters';
 import { APP_FILTER } from '@nestjs/core';
 import { MinioModule } from '../storage';
+import { SubscriberModule } from '../subscriber';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { MinioModule } from '../storage';
     AnalyzerModule,
     RenderModule,
     MinioModule,
+    SubscriberModule,
   ],
   providers: [
     {
