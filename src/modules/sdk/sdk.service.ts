@@ -18,11 +18,12 @@ import {
 export class SdkService {
   private sdkByChain: Record<ChainType, Sdk>;
   constructor(config: ConfigService) {
-    const sdkConfig = config.getOrThrow<SdkConfig>('sdk');
+    const { opalUrl, quartzUrl, uniqueUrl} = config.getOrThrow<SdkConfig>('sdk');
+
     this.sdkByChain = {
-      [ChainType.OPAL]: new Sdk({ baseUrl: sdkConfig.opalUrl }),
-      [ChainType.QUARTZ]: new Sdk({ baseUrl: sdkConfig.quartzUrl }),
-      [ChainType.UNIQUE]: new Sdk({ baseUrl: sdkConfig.uniqueUrl }),
+      [ChainType.OPAL]: new Sdk({ baseUrl: opalUrl }),
+      [ChainType.QUARTZ]: new Sdk({ baseUrl: quartzUrl }),
+      [ChainType.UNIQUE]: new Sdk({ baseUrl: uniqueUrl }),
     };
   }
 
