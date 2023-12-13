@@ -34,7 +34,7 @@ const loadMinio = (): MinioConfig => ({
   accessKey: process.env['MINIO_ACCESS_KEY'],
   secretKey: process.env['MINIO_SECRET_KEY'],
   bucketName: process.env['MINIO_BUCKET_NAME'],
-  filenameTemplate: process.env['MINIO_FILENAME_TEMPLATE'] || null,
+  filenameTemplate: process.env['MINIO_FILENAME_TEMPLATE'] || '${chain}/${collectionId}-${tokenId}.jpg',
 });
 
 export const configLoad = (): AppConfig => {

@@ -22,7 +22,7 @@ export interface MinioConfig {
   accessKey: string;
   secretKey: string;
   bucketName: string;
-  filenameTemplate: string | null;
+  filenameTemplate: string;
 }
 
 export interface AppConfig {
