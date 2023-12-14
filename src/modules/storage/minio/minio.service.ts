@@ -5,9 +5,6 @@ import { UploadFile } from '../../../types';
 import { ConfigService } from '@nestjs/config';
 import { MinioConfig } from '../../../config';
 
-const defaultFilenameTemplate: string =
-  '${chain}/${collectionId}-${tokenId}.jpg';
-
 @Injectable()
 @Global()
 export class MinioService {
@@ -23,8 +20,17 @@ export class MinioService {
   ) {
     this.minioConfig = config.getOrThrow<MinioConfig>('minio');
 
-    this.filenameTemplate =
-      this.minioConfig.filenameTemplate || defaultFilenameTemplate;
+    this.filenameTemplate = this.minioConfig.filenameTemplate;
+  }
+
+  private getFilename(file: UploadFile) {
+    const { token } = file;
+    const { chain, collectionId, tokenId } = token;
+
+    return this.filenameTemplate
+      .replace('${chain}', chain)
+      .replace('${collectionId}', `${collectionId}`)
+      .replace('${tokenId}', `${tokenId}`);
   }
 
   public async uploadFile(file: UploadFile) {
@@ -34,10 +40,7 @@ export class MinioService {
       `upload file: ${chain}-${collectionId}-${tokenId}, ${filePath}`,
     );
 
-    const filename = this.filenameTemplate
-      .replace('${chain}', chain)
-      .replace('${collectionId}', `${collectionId}`)
-      .replace('${tokenId}', `${tokenId}`);
+    const filename = this.getFilename(file);
 
     const result = await this.minioClient.fPutObject(
       this.minioConfig.bucketName,
@@ -48,6 +51,7 @@ export class MinioService {
         timestamp: Math.floor(Date.now() / 1000),
       },
     );
+
     this.logger.log(`upload complete: ${result.etag}, ${result.versionId}`);
   }
 }

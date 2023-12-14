@@ -49,7 +49,7 @@ export class ApiService {
   }
 
   public async buildToken(address: string, dto: BuildTokenDto): Promise<any> {
-    this.logger.log('Add token to queue', dto);
+    this.logger.log(`Add token to queue ${JSON.stringify(dto)}`);
 
     await this.access.buildAccess(address, dto);
 
@@ -69,8 +69,6 @@ export class ApiService {
       )
       .subscribe();
 
-    return {
-      ok: true,
-    };
+    return { ok: true };
   }
 }

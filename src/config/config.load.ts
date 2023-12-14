@@ -9,6 +9,7 @@ import {
 } from './config.types';
 import * as process from 'process';
 import 'dotenv/config';
+import { CHAIN_CONFIG } from '@unique-nft/sdk'
 
 const loadAuth = (): AuthConfig => ({
   jwtSecret: process.env['JWT_SECRET'],
@@ -20,9 +21,9 @@ const loadRmq = (): RabbitMQConfig => ({
 });
 
 const loadSdk = (): SdkConfig => ({
-  opalUrl: process.env['OPAL_REST_URL']!,
-  quartzUrl: process.env['QUARTZ_REST_URL']!,
-  uniqueUrl: process.env['UNIQUE_REST_URL']!,
+  opalUrl: process.env['OPAL_REST_URL'] || CHAIN_CONFIG.opal.restUrl,
+  quartzUrl: process.env['QUARTZ_REST_URL'] || CHAIN_CONFIG.quartz.restUrl,
+  uniqueUrl: process.env['UNIQUE_REST_URL'] || CHAIN_CONFIG.unique.restUrl,
 });
 
 const loadRender = (): RenderConfig => ({
@@ -34,7 +35,7 @@ const loadMinio = (): MinioConfig => ({
   accessKey: process.env['MINIO_ACCESS_KEY'],
   secretKey: process.env['MINIO_SECRET_KEY'],
   bucketName: process.env['MINIO_BUCKET_NAME'],
-  filenameTemplate: process.env['MINIO_FILENAME_TEMPLATE'] || null,
+  filenameTemplate: process.env['MINIO_FILENAME_TEMPLATE'] || '${chain}/${collectionId}-${tokenId}.jpg',
 });
 
 const loadAdmins = (): AdminsConfig => ({
