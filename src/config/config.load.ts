@@ -1,4 +1,5 @@
 import {
+  AdminsConfig,
   AppConfig,
   AuthConfig,
   MinioConfig,
@@ -37,6 +38,15 @@ const loadMinio = (): MinioConfig => ({
   filenameTemplate: process.env['MINIO_FILENAME_TEMPLATE'] || '${chain}/${collectionId}-${tokenId}.jpg',
 });
 
+const loadAdmins = (): AdminsConfig => ({
+  adminsAddressList: process.env['ADMINS_ADDRESS_LIST']
+    ? process.env['ADMINS_ADDRESS_LIST']
+        .split(',')
+        .map((address) => address.trim())
+        .filter((address) => !!address)
+    : [],
+});
+
 export const configLoad = (): AppConfig => {
   return {
     auth: loadAuth(),
@@ -44,5 +54,6 @@ export const configLoad = (): AppConfig => {
     sdk: loadSdk(),
     render: loadRender(),
     minio: loadMinio(),
+    admins: loadAdmins(),
   };
 };
