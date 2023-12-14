@@ -25,10 +25,15 @@ export interface MinioConfig {
   filenameTemplate: string | null;
 }
 
+export interface AdminsConfig {
+  adminsAddressList: string[];
+}
+
 export interface AppConfig {
   auth: AuthConfig;
   rmq: RabbitMQConfig;
   sdk: SdkConfig;
   render: RenderConfig;
   minio: MinioConfig;
+  admins: AdminsConfig;
 }

@@ -6,7 +6,7 @@ import { UnauthorizedException } from '@nestjs/common/exceptions/unauthorized.ex
 import { ClientProxy } from '@nestjs/microservices';
 import { catchError } from 'rxjs';
 import { RmqPatterns, RmqServiceNames, TokenInfo } from '../../types';
-import { SdkService } from '../sdk';
+import { ApiAccess } from './api.access';
 
 @Injectable()
 export class ApiService {
@@ -15,8 +15,8 @@ export class ApiService {
   @Inject(AuthService)
   private readonly authService: AuthService;
 
-  @Inject(SdkService)
-  private readonly sdk: SdkService;
+  @Inject(ApiAccess)
+  private readonly access: ApiAccess;
 
   constructor(
     @Inject(RmqServiceNames.ANALYZER_QUEUE_SERVICE)
@@ -48,32 +48,10 @@ export class ApiService {
     };
   }
 
-  private async checkOwner(
-    address: string,
-    tokenInfo: TokenInfo,
-  ): Promise<void> {
-    const { chain, collectionId, tokenId } = tokenInfo;
-
-    const token = await this.sdk.getTokenOwner({
-      chain,
-      collectionId,
-      tokenId,
-    });
-
-    if (address !== token.owner) {
-      throw new UnauthorizedException(
-        {
-          tokenInfo,
-        },
-        'The token does not belong to you',
-      );
-    }
-  }
-
   public async buildToken(address: string, dto: BuildTokenDto): Promise<any> {
     this.logger.log('Add token to queue', dto);
 
-    await this.checkOwner(address, dto);
+    await this.access.buildAccess(address, dto);
 
     const sendResult = this.rmqClient.emit<any, TokenInfo>(
       RmqPatterns.BUILD_TOKEN,
