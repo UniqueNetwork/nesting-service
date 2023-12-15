@@ -3,9 +3,7 @@ import {
   ArgumentsHost,
   BadRequestException,
   Catch,
-  ExceptionFilter,
   HttpException,
-  NotFoundException,
 } from '@nestjs/common';
 import { ValidationError } from '../../errors';
 import { BaseError } from '../../errors/base-error';
@@ -54,14 +52,5 @@ function getErrorData(exception: Error) {
 export class BaseExceptionsFilter extends BaseExceptionFilter {
   catch(exception: BaseError, host: ArgumentsHost) {
     super.catch(createRestException(exception), host);
-  }
-}
-
-@Catch(NotFoundException)
-export class NotFoundExceptionFilter implements ExceptionFilter {
-  catch(_exception: NotFoundException, host: ArgumentsHost) {
-    const ctx = host.switchToHttp();
-    const response = ctx.getResponse();
-    response.render('not-found');
   }
 }

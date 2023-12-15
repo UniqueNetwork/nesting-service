@@ -8,10 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { RmqQueues, RmqServiceNames } from '../../types';
 import { RabbitMQConfig } from '../../config';
 import { RenderModule } from '../render';
-import {
-  BaseExceptionsFilter,
-  NotFoundExceptionFilter,
-} from '../utils/exception.filters';
+import { BaseExceptionsFilter } from '../utils/exception.filters';
 import { APP_FILTER } from '@nestjs/core';
 import { MinioModule } from '../storage';
 import { SubscriberModule } from '../subscriber';
@@ -52,10 +49,6 @@ import { SubscriberModule } from '../subscriber';
     {
       provide: APP_FILTER,
       useClass: BaseExceptionsFilter,
-    },
-    {
-      provide: APP_FILTER,
-      useClass: NotFoundExceptionFilter,
     },
   ],
 })
