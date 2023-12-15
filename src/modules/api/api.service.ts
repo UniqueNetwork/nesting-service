@@ -7,6 +7,8 @@ import { ClientProxy } from '@nestjs/microservices';
 import { catchError } from 'rxjs';
 import { RmqPatterns, RmqServiceNames, TokenInfo } from '../../types';
 import { ApiAccess } from './api.access';
+import { ConfigService } from '@nestjs/config';
+import { AdminsConfig, MinioConfig, RenderConfig } from '../../config';
 
 @Injectable()
 export class ApiService {
@@ -19,9 +21,21 @@ export class ApiService {
   private readonly access: ApiAccess;
 
   constructor(
+    private readonly config: ConfigService,
     @Inject(RmqServiceNames.ANALYZER_QUEUE_SERVICE)
     private rmqClient: ClientProxy,
   ) {}
+
+  public async getConfiguration(): Promise<any> {
+    const admins = this.config.getOrThrow<AdminsConfig>('admins');
+    const minio = this.config.getOrThrow<MinioConfig>('minio');
+    const render = this.config.getOrThrow<RenderConfig>('render');
+    return {
+      admins: admins.adminsAddressList,
+      renderImagesDir: render.imagesDir,
+      minioFilenameTemplate: minio.filenameTemplate,
+    };
+  }
 
   public async getAuthToken(body: GetAuthTokenDto): Promise<AuthTokenResponse> {
     const { message, signature, address } = body;

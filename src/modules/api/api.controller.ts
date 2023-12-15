@@ -6,6 +6,7 @@ import {
   UseGuards,
   Request,
   UsePipes,
+  Get,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { AuthTokenResponse, BuildTokenDto, GetAuthTokenDto } from './dto';
@@ -19,6 +20,12 @@ import { createValidationPipe } from './validation';
 export class ApiController {
   @Inject(ApiService)
   private apiService: ApiService;
+
+  @UsePipes(createValidationPipe())
+  @Get('configuration')
+  async getConfiguration() {
+    return this.apiService.getConfiguration();
+  }
 
   @UsePipes(createValidationPipe())
   @Post('get-auth-token')
