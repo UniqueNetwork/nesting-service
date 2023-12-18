@@ -34,18 +34,16 @@ export class MinioService {
   }
 
   public async uploadFile(file: UploadFile) {
-    const { token, filePath } = file;
+    const { token, content } = file;
     const { chain, collectionId, tokenId } = token;
-    this.logger.log(
-      `upload file: ${chain}-${collectionId}-${tokenId}, ${filePath}`,
-    );
+    this.logger.log(`upload file: ${chain}-${collectionId}-${tokenId}`);
 
     const filename = this.getFilename(file);
 
-    const result = await this.minioClient.fPutObject(
+    const result = await this.minioClient.putObject(
       this.minioConfig.bucketName,
       filename,
-      filePath,
+      content,
       {
         token,
         timestamp: Math.floor(Date.now() / 1000),

@@ -33,19 +33,17 @@ export class RenderService {
   public async render(renderInfo: RenderTokenInfo): Promise<void> {
     this.logger.log('Render token', renderInfo);
 
-    const { images, filename, token } = renderInfo;
+    const { images, token } = renderInfo;
 
     const mergedJimp = await this.mergeImages(images);
 
-    const outputFilePath = `${this.renderConfig.imagesDir}/${filename}`;
-
-    await mergedJimp.writeAsync(outputFilePath);
+    const content = await mergedJimp.getBufferAsync(mergedJimp.getMIME());
 
     this.logger.log('render complete');
 
     await this.minioService.uploadFile({
       token,
-      filePath: outputFilePath,
+      content,
     });
   }
 }
