@@ -32,7 +32,15 @@ ${runInfo}
     include: [ApiModule],
   });
 
-  SwaggerModule.setup('api/swagger', app, document);
+
+  SwaggerModule.setup(
+    'api/swagger',
+    app,
+    document,
+    {
+      customJs: 'https://unpkg.com/@ashkuc/tiny-signer@0.0.3/dist/index.global.js'
+    }
+  );
 
   return document;
 }
