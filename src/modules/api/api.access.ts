@@ -1,9 +1,13 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { AdminsConfig } from '../../config';
 import { ConfigService } from '@nestjs/config';
-import { CollectionInfo, TokenInfo } from '../../types';
 import { UnauthorizedException } from '@nestjs/common/exceptions/unauthorized.exception';
+import { Address } from '@unique-nft/utils/address';
+import { AdminsConfig } from '../../config';
+import { CollectionInfo, TokenInfo } from '../../types';
 import { SdkService } from '../sdk';
+
+const checkAddressEqual = (left: string) => (right: string) =>
+  Address.compare.substrateAddresses(left, right);
 
 @Injectable()
 export class ApiAccess {
@@ -26,7 +30,9 @@ export class ApiAccess {
       collectionId,
     });
 
-    if (address !== owner) {
+    const isOwner = Address.compare.substrateAddresses(owner, address);
+
+    if (!isOwner) {
       throw new UnauthorizedException(
         {
           collectionInfo,
@@ -48,7 +54,9 @@ export class ApiAccess {
       tokenId,
     });
 
-    if (address !== owner) {
+    const isOwner = Address.compare.substrateAddresses(owner, address);
+
+    if (!isOwner) {
       throw new UnauthorizedException(
         {
           tokenInfo,
@@ -62,18 +70,20 @@ export class ApiAccess {
     address: string,
     collectionInfo: CollectionInfo,
   ) {
-    if (this.adminsConfig.adminsAddressList.includes(address)) {
-      return;
-    }
+    const isAddress = checkAddressEqual(address);
+    const isAdmin = this.adminsConfig.adminsAddressList.some(isAddress);
 
-    await this.checkCollectionOwner(address, collectionInfo);
+    if (!isAdmin) {
+      await this.checkCollectionOwner(address, collectionInfo);
+    }
   }
 
   public async buildTokenAccess(address: string, tokenInfo: TokenInfo) {
-    if (this.adminsConfig.adminsAddressList.includes(address)) {
-      return;
-    }
+    const isAddress = checkAddressEqual(address);
+    const isAdmin = this.adminsConfig.adminsAddressList.some(isAddress);
 
-    await this.checkTokenOwner(address, tokenInfo);
+    if (!isAdmin) {
+      await this.checkCollectionOwner(address, tokenInfo);
+    }
   }
 }
