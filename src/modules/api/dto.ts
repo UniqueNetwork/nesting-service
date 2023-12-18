@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ChainType, TokenInfo } from '../../types';
+import { ChainType, CollectionInfo, TokenInfo } from '../../types';
 import { IsEnum, IsNumber, IsString, Min } from 'class-validator';
 
 export class GetAuthTokenDto {
@@ -21,7 +21,7 @@ export class AuthTokenResponse {
   access_token: string;
 }
 
-export class BuildTokenDto implements TokenInfo {
+export class BuildCollectionDto implements CollectionInfo {
   @ApiProperty()
   @IsEnum(ChainType)
   chain: ChainType;
@@ -30,7 +30,9 @@ export class BuildTokenDto implements TokenInfo {
   @IsNumber()
   @Min(1)
   collectionId: number;
+}
 
+export class BuildTokenDto extends BuildCollectionDto implements TokenInfo {
   @ApiProperty()
   @IsNumber()
   @Min(1)

@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { AdminsConfig } from '../../config';
 import { ConfigService } from '@nestjs/config';
-import { TokenInfo } from '../../types';
+import { CollectionInfo, TokenInfo } from '../../types';
 import { UnauthorizedException } from '@nestjs/common/exceptions/unauthorized.exception';
 import { SdkService } from '../sdk';
 
@@ -15,19 +15,40 @@ export class ApiAccess {
     this.adminsConfig = config.getOrThrow<AdminsConfig>('admins');
   }
 
-  private async checkOwner(
+  private async checkCollectionOwner(
+    address: string,
+    collectionInfo: CollectionInfo,
+  ): Promise<void> {
+    const { chain, collectionId } = collectionInfo;
+
+    const owner = await this.sdk.getCollectionOwner({
+      chain,
+      collectionId,
+    });
+
+    if (address !== owner) {
+      throw new UnauthorizedException(
+        {
+          collectionInfo,
+        },
+        'The collection does not belong to you',
+      );
+    }
+  }
+
+  private async checkTokenOwner(
     address: string,
     tokenInfo: TokenInfo,
   ): Promise<void> {
     const { chain, collectionId, tokenId } = tokenInfo;
 
-    const token = await this.sdk.getTokenOwner({
+    const owner = await this.sdk.getTokenOwner({
       chain,
       collectionId,
       tokenId,
     });
 
-    if (address !== token.owner) {
+    if (address !== owner) {
       throw new UnauthorizedException(
         {
           tokenInfo,
@@ -37,11 +58,22 @@ export class ApiAccess {
     }
   }
 
-  public async buildAccess(address: string, tokenInfo: TokenInfo) {
+  public async buildCollectionAccess(
+    address: string,
+    collectionInfo: CollectionInfo,
+  ) {
     if (this.adminsConfig.adminsAddressList.includes(address)) {
       return;
     }
 
-    await this.checkOwner(address, tokenInfo);
+    await this.checkCollectionOwner(address, collectionInfo);
+  }
+
+  public async buildTokenAccess(address: string, tokenInfo: TokenInfo) {
+    if (this.adminsConfig.adminsAddressList.includes(address)) {
+      return;
+    }
+
+    await this.checkTokenOwner(address, tokenInfo);
   }
 }

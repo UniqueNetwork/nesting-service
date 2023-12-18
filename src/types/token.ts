@@ -4,9 +4,12 @@ export enum ChainType {
   UNIQUE = 'unique',
 }
 
-export interface TokenInfo {
+export interface CollectionInfo {
   chain: ChainType;
   collectionId: number;
+}
+
+export interface TokenInfo extends CollectionInfo {
   tokenId: number;
 }
 
