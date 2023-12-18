@@ -23,6 +23,8 @@ export class MinioService {
     this.filenameTemplate = this.minioConfig.filenameTemplate;
   }
 
+  // todo - string like ${chain} in env may not work as expected
+  // also file extension may be different
   private getFilename(file: UploadFile) {
     const { token } = file;
     const { chain, collectionId, tokenId } = token;
@@ -34,11 +36,11 @@ export class MinioService {
   }
 
   public async uploadFile(file: UploadFile) {
-    const { token, content } = file;
+    const { token, content, filename } = file;
     const { chain, collectionId, tokenId } = token;
     this.logger.log(`upload file: ${chain}-${collectionId}-${tokenId}`);
 
-    const filename = this.getFilename(file);
+    // const filename = this.getFilename(file);
 
     const result = await this.minioClient.putObject(
       this.minioConfig.bucketName,

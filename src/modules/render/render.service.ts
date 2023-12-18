@@ -37,6 +37,9 @@ export class RenderService {
 
     const mergedJimp = await this.mergeImages(images);
 
+    const extension = mergedJimp.getExtension();
+    const filename = `${token.chain}/${token.collectionId}/${token.tokenId}.${extension}`;
+
     const content = await mergedJimp.getBufferAsync(mergedJimp.getMIME());
 
     this.logger.log('render complete');
@@ -44,6 +47,7 @@ export class RenderService {
     await this.minioService.uploadFile({
       token,
       content,
+      filename,
     });
   }
 }
