@@ -21,7 +21,7 @@ export class AuthTokenResponse {
   access_token: string;
 }
 
-export class BuildCollectionDto implements CollectionInfo {
+export class CollectionInfoDto implements CollectionInfo {
   @ApiProperty()
   @IsEnum(ChainType)
   chain: ChainType;
@@ -32,7 +32,7 @@ export class BuildCollectionDto implements CollectionInfo {
   collectionId: number;
 }
 
-export class BuildTokenDto extends BuildCollectionDto implements TokenInfo {
+export class TokenInfoDto extends CollectionInfoDto implements TokenInfo {
   @ApiProperty()
   @IsNumber()
   @Min(1)

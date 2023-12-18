@@ -5,16 +5,19 @@ import {
   Post,
   UseGuards,
   Request,
+  Response,
   UsePipes,
   Get,
+  Query,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiResponse, ApiTags } from '@nestjs/swagger';
 import {
   AuthTokenResponse,
-  BuildCollectionDto,
-  BuildTokenDto,
+  CollectionInfoDto,
+  TokenInfoDto,
   GetAuthTokenDto,
 } from './dto';
+import { Response as ExpressResponse } from 'express';
 import { AuthGuard } from '../auth/jwt';
 import { ApiService } from './api.service';
 import { InputRequest } from '../../types';
@@ -44,24 +47,35 @@ export class ApiController {
 
   @UsePipes(createValidationPipe())
   @Post('build-token')
-  @ApiBody({ type: BuildTokenDto })
+  @ApiBody({ type: TokenInfoDto })
   @UseGuards(AuthGuard)
   @ApiBearerAuth('JWT')
-  async buildToken(@Request() req: InputRequest, @Body() body: BuildTokenDto) {
+  async buildToken(@Request() req: InputRequest, @Body() body: TokenInfoDto) {
     const { jwtPayload } = req;
     return this.apiService.buildToken(jwtPayload.address, body);
   }
 
   @UsePipes(createValidationPipe())
   @Post('build-collection')
-  @ApiBody({ type: BuildCollectionDto })
+  @ApiBody({ type: CollectionInfoDto })
   @UseGuards(AuthGuard)
   @ApiBearerAuth('JWT')
   async buildCollection(
     @Request() req: InputRequest,
-    @Body() body: BuildCollectionDto,
+    @Body() body: CollectionInfoDto,
   ) {
     const { jwtPayload } = req;
     return this.apiService.buildCollection(jwtPayload.address, body);
+  }
+
+  @UsePipes(createValidationPipe())
+  @Get('image')
+  async getTokenImage(
+    @Request() req: InputRequest,
+    @Response() res: ExpressResponse,
+    @Query() body: TokenInfoDto,
+  ) {
+    const url = this.apiService.getTokenImage(body);
+    res.redirect(url);
   }
 }
