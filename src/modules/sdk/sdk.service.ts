@@ -5,20 +5,22 @@ import {
   Room,
   TokenByIdResponse,
 } from '@unique-nft/sdk';
-import { ChainType, SubscribeCallback, TokenInfo } from '../../types';
+import {
+  ChainType,
+  CollectionInfo,
+  SubscribeCallback,
+  TokenInfo,
+} from '../../types';
 import { ConfigService } from '@nestjs/config';
 import { SdkConfig } from '../../config';
-import {
-  Sdk,
-  SubscriptionEvents,
-  TokenOwnerResponse,
-} from '@unique-nft/sdk/full';
+import { Sdk, SubscriptionEvents } from '@unique-nft/sdk/full';
 
 @Injectable()
 export class SdkService {
   private sdkByChain: Record<ChainType, Sdk>;
   constructor(config: ConfigService) {
-    const { opalUrl, quartzUrl, uniqueUrl} = config.getOrThrow<SdkConfig>('sdk');
+    const { opalUrl, quartzUrl, uniqueUrl } =
+      config.getOrThrow<SdkConfig>('sdk');
 
     this.sdkByChain = {
       [ChainType.OPAL]: new Sdk({ baseUrl: opalUrl }),
@@ -52,11 +54,38 @@ export class SdkService {
     return this.sdkByChain[chain].token.getBundle({ collectionId, tokenId });
   }
 
-  public async getTokenOwner(
-    tokenInfo: TokenInfo,
-  ): Promise<TokenOwnerResponse> {
+  public async getCollectionOwner(
+    collectionInfo: CollectionInfo,
+  ): Promise<string> {
+    const { chain, collectionId } = collectionInfo;
+
+    const { owner } = await this.sdkByChain[chain].collection.get({
+      collectionId,
+    });
+
+    return owner;
+  }
+
+  public async getTokenOwner(tokenInfo: TokenInfo): Promise<string> {
     const { chain, collectionId, tokenId } = tokenInfo;
 
-    return this.sdkByChain[chain].token.owner({ collectionId, tokenId });
+    const { owner } = await this.sdkByChain[chain].token.owner({
+      collectionId,
+      tokenId,
+    });
+
+    return owner;
+  }
+
+  public async getCollectionTokens(
+    collectionInfo: CollectionInfo,
+  ): Promise<number[]> {
+    const { chain, collectionId } = collectionInfo;
+
+    const { ids } = await this.sdkByChain[chain].collection.tokens({
+      collectionId,
+    });
+
+    return ids;
   }
 }
