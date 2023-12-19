@@ -29,11 +29,15 @@ export class ApiService {
   @Inject(SdkService)
   private readonly sdk: SdkService;
 
+  private readonly minioConfig: MinioConfig;
+
   constructor(
     private readonly config: ConfigService,
     @Inject(RmqServiceNames.ANALYZER_QUEUE_SERVICE)
     private rmqClient: ClientProxy,
-  ) {}
+  ) {
+    this.minioConfig = config.getOrThrow<MinioConfig>('minio');
+  }
 
   public async getConfiguration(): Promise<any> {
     const admins = this.config.getOrThrow<AdminsConfig>('admins');
@@ -128,5 +132,17 @@ export class ApiService {
         }),
       ),
     );
+  }
+
+  public getTokenImage(tokenInfo: TokenInfo) {
+    const { chain, collectionId, tokenId } = tokenInfo;
+
+    const { endPoint, bucketName, filenameTemplate } = this.minioConfig;
+    const filename = filenameTemplate
+      .replace('${chain}', chain)
+      .replace('${collectionId}', `${collectionId}`)
+      .replace('${tokenId}', `${tokenId}`);
+
+    return `https://${endPoint}/${bucketName}/${filename}`;
   }
 }
