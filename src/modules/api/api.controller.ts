@@ -8,7 +8,7 @@ import {
   Response,
   UsePipes,
   Get,
-  Query,
+  Param,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiResponse, ApiTags } from '@nestjs/swagger';
 import {
@@ -20,7 +20,7 @@ import {
 import { Response as ExpressResponse } from 'express';
 import { AuthGuard } from '../auth/jwt';
 import { ApiService } from './api.service';
-import { InputRequest } from '../../types';
+import { ChainType, InputRequest } from '../../types';
 import { createValidationPipe } from './validation';
 
 @ApiTags('Api')
@@ -69,13 +69,13 @@ export class ApiController {
   }
 
   @UsePipes(createValidationPipe())
-  @Get('image')
-  async getTokenImage(
-    @Request() req: InputRequest,
+  @Get('common/:chain/:collectionId/:tokenId')
+  getTokenImage(
     @Response() res: ExpressResponse,
-    @Query() body: TokenInfoDto,
+    @Param() tokenInfo: TokenInfoDto,
   ) {
-    const url = this.apiService.getTokenImage(body);
-    res.redirect(url);
+    const tokenImageUrl = this.apiService.getTokenImage(tokenInfo);
+
+    res.redirect(tokenImageUrl);
   }
 }
