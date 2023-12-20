@@ -4,9 +4,7 @@ import { ApiModule } from '../api';
 import { INestApplication } from '@nestjs/common';
 
 const runInfoFile = './config/run-info.txt';
-const runInfo = fs.existsSync(runInfoFile)
-  ? fs.readFileSync(runInfoFile).toString()
-  : '';
+const runInfo = fs.existsSync(runInfoFile) ? fs.readFileSync(runInfoFile).toString() : '';
 console.log('runInfo', runInfo);
 
 export function addSwagger(app: INestApplication) {
@@ -17,7 +15,7 @@ export function addSwagger(app: INestApplication) {
       in: 'header',
       name: 'Authorization',
     })
-    .setTitle('CityHelp')
+    .setTitle('Unique.Network - Nesting service')
     .setDescription(
       `<pre>
 Build date: ${new Date().toString()}
@@ -32,15 +30,9 @@ ${runInfo}
     include: [ApiModule],
   });
 
-
-  SwaggerModule.setup(
-    'api/swagger',
-    app,
-    document,
-    {
-      customJs: 'https://unpkg.com/@ashkuc/tiny-signer@0.0.3/dist/index.global.js'
-    }
-  );
+  SwaggerModule.setup('api/swagger', app, document, {
+    customJs: 'https://unpkg.com/@ashkuc/tiny-signer@0.0.3/dist/index.global.js',
+  });
 
   return document;
 }
