@@ -26,6 +26,19 @@ export class SubscriberService {
     return { chain, collectionId, tokenId };
   }
 
+  private extractTokenFromEvent(chain: ChainType, eventData: CollectionData): TokenInfo | null {
+    const { address, addressTo } = eventData.parsed;
+    const parentToken = this.extractTokenFromAddress(chain, address || addressTo);
+
+    if (parentToken) {
+      this.logger.log(`Found nesting event`);
+
+      return parentToken;
+    }
+
+    return null;
+  }
+
   private async onEvent(chain: ChainType, eventData: CollectionData) {
     const {
       event: { method, section, block },
@@ -33,9 +46,7 @@ export class SubscriberService {
 
     this.logger.log(`Received event ${section}.${method} on ${chain}. Block: ${block?.id}`);
 
-    const { address, addressTo } = eventData.parsed;
-
-    const parentToken = this.extractTokenFromAddress(chain, address) || this.extractTokenFromAddress(chain, addressTo);
+    const parentToken = this.extractTokenFromEvent(chain, eventData);
 
     if (!parentToken) {
       this.logger.log(`No token found, ignoring event.`);
