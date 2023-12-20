@@ -6,14 +6,16 @@ import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { ConfigService } from '@nestjs/config';
 import { RabbitMQConfig } from './config';
 import { RmqQueues } from './types';
+import { Logger } from '@nestjs/common';
 
 async function bootstrap() {
+  const logger = new Logger(bootstrap.name);
   const app = await NestFactory.create<NestExpressApplication>(AllServicesApp);
 
   const config = app.get(ConfigService);
   const rmqConfig = config.getOrThrow<RabbitMQConfig>('rmq');
 
-  const ms = app.connectMicroservice<MicroserviceOptions>({
+  const microservice = app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.RMQ,
     options: {
       urls: rmqConfig.urls,
@@ -22,16 +24,17 @@ async function bootstrap() {
       prefetchCount: 1,
     },
   });
-  const res = await ms.listen();
-  console.log('ms listen, res', res);
+  await microservice.listen();
+  logger.log('Microservice listening');
 
   addSwagger(app);
 
   const port = 3000;
   await app.listen(port);
 
-  console.log(
+  logger.log(
     `Application started at :${port}, swagger: http://localhost:${port}/api/swagger`,
   );
 }
+
 bootstrap();
