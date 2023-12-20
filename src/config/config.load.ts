@@ -10,6 +10,8 @@ import {
 import * as process from 'process';
 import 'dotenv/config';
 import { CHAIN_CONFIG } from '@unique-nft/sdk';
+import { Address } from '@unique-nft/utils/address';
+import { Logger } from '@nestjs/common';
 
 const getStringOrThrow = (key: string, defaultValue?: string): string => {
   const value = process.env[key] || defaultValue;
@@ -43,14 +45,26 @@ const loadMinio = (): MinioConfig => ({
   bucketName: getStringOrThrow('MINIO_BUCKET_NAME'),
 });
 
-const loadAdmins = (): AdminsConfig => ({
-  adminsAddressList: process.env['ADMINS_ADDRESS_LIST']
+const loadAdmins = (): AdminsConfig => {
+  const logger = new Logger('Config.AdminsConfig');
+
+  const adminsAddressList = process.env['ADMINS_ADDRESS_LIST']
     ? process.env['ADMINS_ADDRESS_LIST']
         .split(',')
         .map((address) => address.trim())
         .filter((address) => !!address)
-    : [],
-});
+        .filter((address) => {
+          const isValid = Address.is.substrateAddress(address);
+          if (!isValid) logger.warn(`Invalid admin address: ${address}, skipping`);
+
+          return isValid;
+        })
+    : [];
+
+  return {
+    adminsAddressList,
+  };
+};
 
 export const configLoad = (): AppConfig => {
   return {
