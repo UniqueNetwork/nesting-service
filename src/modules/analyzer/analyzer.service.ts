@@ -55,10 +55,6 @@ export class AnalyzerService {
       this.sdkService.getToken({ chain, collectionId, tokenId }),
     ]);
 
-    if (!bundle.nestingChildTokens.length) {
-      return;
-    }
-
     const nestedTokensPromises = bundle.nestingChildTokens.map((nested) =>
       this.sdkService.getToken({
         chain,
