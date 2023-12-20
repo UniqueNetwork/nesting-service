@@ -25,8 +25,11 @@ export class RootController {
   ) {
     const { endPoint, bucketName } = this.config.get('minio');
 
+    // todo - think about storage response caching
+    const antiCache = Date.now();
+
     const tokenPath = `${chain}/${collectionId}/${tokenId}.png`;
-    const url = `https://${endPoint}/${bucketName}/${tokenPath}`;
+    const url = `https://${endPoint}/${bucketName}/${tokenPath}?${antiCache}`;
 
     return { url };
   }
