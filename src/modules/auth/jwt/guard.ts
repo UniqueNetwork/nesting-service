@@ -1,13 +1,8 @@
-import {
-  CanActivate,
-  ExecutionContext,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import type { Request } from 'express';
 import { AuthConfig } from '../../../config';
-import { InputRequest } from '../../../types';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -20,14 +15,10 @@ export class AuthGuard implements CanActivate {
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const req: InputRequest = context
-      .switchToHttp()
-      .getRequest() as InputRequest;
+    const req = context.switchToHttp().getRequest() as Request;
 
     const token = this.extractTokenFromHeader(req);
-    if (!token) {
-      throw new UnauthorizedException();
-    }
+    if (!token) throw new UnauthorizedException();
 
     try {
       req.jwtPayload = await this.jwtService.verifyAsync(token, {
@@ -39,7 +30,7 @@ export class AuthGuard implements CanActivate {
     return true;
   }
 
-  private extractTokenFromHeader(request: InputRequest): string | undefined {
+  private extractTokenFromHeader(request: Request): string | undefined {
     if (!request.headers['authorization']) return undefined;
     const [type, token] = request.headers['authorization'].split(' ') ?? [];
     return type === 'Bearer' ? token : undefined;

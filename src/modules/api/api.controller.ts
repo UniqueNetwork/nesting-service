@@ -1,23 +1,10 @@
-import {
-  Body,
-  Controller,
-  Inject,
-  Post,
-  UseGuards,
-  Request,
-  UsePipes,
-  Get,
-} from '@nestjs/common';
+import { Body, Controller, Inject, Post, UseGuards, Req, UsePipes, Get } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiResponse, ApiTags } from '@nestjs/swagger';
-import {
-  AuthTokenResponse,
-  BuildCollectionDto,
-  BuildTokenDto,
-  GetAuthTokenDto,
-} from './dto';
+import type { Request } from 'express';
+
+import { AuthTokenResponse, BuildCollectionDto, BuildTokenDto, GetAuthTokenDto } from './dto';
 import { AuthGuard } from '../auth/jwt';
 import { ApiService } from './api.service';
-import { InputRequest } from '../../types';
 import { createValidationPipe } from './validation';
 
 @ApiTags('Api')
@@ -36,9 +23,7 @@ export class ApiController {
   @Post('get-auth-token')
   @ApiBody({ type: GetAuthTokenDto })
   @ApiResponse({ type: AuthTokenResponse })
-  async getAuthToken(
-    @Body() body: GetAuthTokenDto,
-  ): Promise<AuthTokenResponse> {
+  async getAuthToken(@Body() body: GetAuthTokenDto): Promise<AuthTokenResponse> {
     return this.apiService.getAuthToken(body);
   }
 
@@ -47,7 +32,7 @@ export class ApiController {
   @ApiBody({ type: BuildTokenDto })
   @UseGuards(AuthGuard)
   @ApiBearerAuth('JWT')
-  async buildToken(@Request() req: InputRequest, @Body() body: BuildTokenDto) {
+  async buildToken(@Req() req: Request, @Body() body: BuildTokenDto) {
     const { jwtPayload } = req;
     return this.apiService.buildToken(jwtPayload.address, body);
   }
@@ -57,10 +42,7 @@ export class ApiController {
   @ApiBody({ type: BuildCollectionDto })
   @UseGuards(AuthGuard)
   @ApiBearerAuth('JWT')
-  async buildCollection(
-    @Request() req: InputRequest,
-    @Body() body: BuildCollectionDto,
-  ) {
+  async buildCollection(@Req() req: Request, @Body() body: BuildCollectionDto) {
     const { jwtPayload } = req;
     return this.apiService.buildCollection(jwtPayload.address, body);
   }
