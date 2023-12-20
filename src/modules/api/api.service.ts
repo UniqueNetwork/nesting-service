@@ -37,12 +37,8 @@ export class ApiService {
 
   public async getConfiguration(): Promise<any> {
     const admins = this.config.getOrThrow<AdminsConfig>('admins');
-    const minio = this.config.getOrThrow<MinioConfig>('minio');
-    const render = this.config.getOrThrow<RenderConfig>('render');
     return {
       admins: admins.adminsAddressList,
-      renderImagesDir: render.imagesDir,
-      minioFilenameTemplate: minio.filenameTemplate,
     };
   }
 

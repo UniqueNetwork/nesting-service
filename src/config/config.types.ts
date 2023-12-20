@@ -13,16 +13,13 @@ export interface SdkConfig {
   uniqueUrl: string;
 }
 
-export interface RenderConfig {
-  imagesDir: string;
-}
+export interface RenderConfig {}
 
 export interface MinioConfig {
   endPoint: string;
   accessKey: string;
   secretKey: string;
   bucketName: string;
-  filenameTemplate: string;
 }
 
 export interface AdminsConfig {

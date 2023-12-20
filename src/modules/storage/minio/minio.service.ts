@@ -12,35 +12,17 @@ export class MinioService {
 
   private readonly minioConfig: MinioConfig;
 
-  private filenameTemplate: string;
-
   constructor(
     config: ConfigService,
     @Inject(MINIO_CONNECTION) private readonly minioClient: Client,
   ) {
     this.minioConfig = config.getOrThrow<MinioConfig>('minio');
-
-    this.filenameTemplate = this.minioConfig.filenameTemplate;
-  }
-
-  // todo - string like ${chain} in env may not work as expected
-  // also file extension may be different
-  private getFilename(file: UploadFile) {
-    const { token } = file;
-    const { chain, collectionId, tokenId } = token;
-
-    return this.filenameTemplate
-      .replace('${chain}', chain)
-      .replace('${collectionId}', `${collectionId}`)
-      .replace('${tokenId}', `${tokenId}`);
   }
 
   public async uploadFile(file: UploadFile) {
     const { token, content, filename } = file;
     const { chain, collectionId, tokenId } = token;
     this.logger.log(`upload file: ${chain}-${collectionId}-${tokenId}`);
-
-    // const filename = this.getFilename(file);
 
     const result = await this.minioClient.putObject(
       this.minioConfig.bucketName,
