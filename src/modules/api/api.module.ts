@@ -4,10 +4,11 @@ import { ApiService } from './api.service';
 import { AuthModule } from '../auth/auth.module';
 import { SdkService } from '../sdk';
 import { ApiAccess } from './api.access';
+import { RootController } from './root.controller';
 
 @Module({
   imports: [AuthModule],
-  controllers: [ApiController],
+  controllers: [ApiController, RootController],
   providers: [ApiService, SdkService, ApiAccess],
 })
 export class ApiModule {}
