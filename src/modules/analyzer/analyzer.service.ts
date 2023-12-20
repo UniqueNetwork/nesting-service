@@ -1,11 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import {
-  RenderImage,
-  RenderTokenInfo,
-  RmqPatterns,
-  RmqServiceNames,
-  TokenInfo,
-} from '../../types';
+import { RenderImage, RenderTokenInfo, RmqPatterns, RmqServiceNames, TokenInfo } from '../../types';
 import { ClientProxy } from '@nestjs/microservices';
 import { lastValueFrom } from 'rxjs';
 import { TokenByIdResponse } from '@unique-nft/sdk';
@@ -48,14 +42,12 @@ export class AnalyzerService {
       }
     }
 
-    this.logger.warn(
-      `Couldn't find an image for token ${chain}- ${token.collectionId}/${token.tokenId}!`,
-    );
+    this.logger.warn(`Couldn't find an image for token ${chain}- ${token.collectionId}/${token.tokenId}!`);
     return null;
   }
 
   public async buildToken(tokenInfo: TokenInfo): Promise<void> {
-    this.logger.log('Build token', tokenInfo);
+    this.logger.log('Building token', tokenInfo);
     const { chain, collectionId, tokenId } = tokenInfo;
 
     const [bundle, token] = await Promise.all([
@@ -67,27 +59,25 @@ export class AnalyzerService {
       return;
     }
 
-    const nestedTokens = await Promise.all(
-      bundle.nestingChildTokens.map((nested) =>
-        this.sdkService.getToken({
-          chain,
-          collectionId: nested.collectionId,
-          tokenId: nested.tokenId,
-        }),
-      ),
+    const nestedTokensPromises = bundle.nestingChildTokens.map((nested) =>
+      this.sdkService.getToken({
+        chain,
+        collectionId: nested.collectionId,
+        tokenId: nested.tokenId,
+      }),
     );
 
-    const images: RenderImage[] = [
-      this.getTokenImageLayer(chain, token, true),
-      ...nestedTokens.map((nestedToken) =>
-        this.getTokenImageLayer(chain, nestedToken, true),
-      ),
-    ].filter((image) => !!image);
+    const nestedTokens = await Promise.all(nestedTokensPromises);
+
+    const tokens = [token, ...nestedTokens];
+
+    const images: RenderImage[] = tokens
+      .map((token) => this.getTokenImageLayer(chain, token, true))
+      .filter((image): image is RenderImage => !!image);
 
     if (!images.length) {
-      this.logger.log(
-        `No images to render token: ${chain}-${collectionId}/${tokenId}!`,
-      );
+      this.logger.log(`No images to render token: ${chain}/${collectionId}/${tokenId}, ignoring.`);
+
       return;
     }
 
@@ -98,11 +88,9 @@ export class AnalyzerService {
         tokenId,
       },
       images,
-      filename: `${chain}/${collectionId}-${tokenId}.png`,
+      filename: `${chain}/${collectionId}/${tokenId}.png`,
     };
 
-    await lastValueFrom(
-      this.rmqClient.emit(RmqPatterns.RENDER_IMAGES, renderInfo),
-    );
+    await lastValueFrom(this.rmqClient.emit(RmqPatterns.RENDER_IMAGES, renderInfo));
   }
 }

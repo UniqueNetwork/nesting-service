@@ -19,15 +19,19 @@ export class RenderService {
   }
 
   private async mergeImages(images: RenderImage[]): Promise<Jimp> {
-    const image = await Jimp.read(images.shift().url);
+    if (!images.length) throw new Error('No images to merge');
 
-    for (const { url } of images) {
+    const [firstImage, ...restImages] = images;
+
+    const jimpImage = await Jimp.read(firstImage.url);
+
+    for (const { url } of restImages) {
       const childImage = await Jimp.read(url);
 
-      image.composite(childImage, 0, 0);
+      jimpImage.composite(childImage, 0, 0);
     }
 
-    return image;
+    return jimpImage;
   }
 
   public async render(renderInfo: RenderTokenInfo): Promise<void> {
