@@ -28,7 +28,10 @@ export class SubscriberService {
 
   private extractTokenFromEvent(chain: ChainType, eventData: CollectionData): TokenInfo | null {
     const { address, addressTo } = eventData.parsed;
-    const parentToken = this.extractTokenFromAddress(chain, address || addressTo);
+
+    const tokenFrom = this.extractTokenFromAddress(chain, address);
+    const tokenTo = this.extractTokenFromAddress(chain, addressTo);
+    const parentToken = tokenFrom || tokenTo;
 
     if (parentToken) {
       this.logger.log(`Found nesting event`);
