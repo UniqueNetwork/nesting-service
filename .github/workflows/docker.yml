@@ -28,5 +28,5 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           push: true
-          tags: uniquenetwork/unique-web:nesting-service-${{ github.sha }}
+          tags: uniquenetwork/unique-web:nesting-service-${{ github.sha }},uniquenetwork/unique-web:nesting-service-latest
           target: production
