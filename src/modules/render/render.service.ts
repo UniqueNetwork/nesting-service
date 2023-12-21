@@ -35,9 +35,9 @@ export class RenderService {
   }
 
   public async render(renderInfo: RenderTokenInfo): Promise<void> {
-    this.logger.log('Render token', renderInfo);
-
     const { images, token } = renderInfo;
+    this.logger.log(`Rendering token ${token.chain}/${token.collectionId}/${token.tokenId}`);
+    this.logger.debug(`Images: ${JSON.stringify(images)}`);
 
     const mergedJimp = await this.mergeImages(images);
 
