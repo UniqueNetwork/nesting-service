@@ -5,15 +5,10 @@ import { signatureVerify } from '@polkadot/util-crypto';
 import { UnauthorizedException } from '@nestjs/common/exceptions/unauthorized.exception';
 import { ClientProxy } from '@nestjs/microservices';
 import { catchError, lastValueFrom } from 'rxjs';
-import {
-  CollectionInfo,
-  RmqPatterns,
-  RmqServiceNames,
-  TokenInfo,
-} from '../../types';
+import { CollectionInfo, RmqPatterns, RmqServiceNames, TokenInfo } from '../../types';
 import { ApiAccess } from './api.access';
 import { ConfigService } from '@nestjs/config';
-import { AdminsConfig, MinioConfig, RenderConfig } from '../../config';
+import { AdminsConfig } from '../../config';
 import { SdkService } from '../sdk';
 
 @Injectable()
@@ -37,6 +32,7 @@ export class ApiService {
 
   public async getConfiguration(): Promise<any> {
     const admins = this.config.getOrThrow<AdminsConfig>('admins');
+
     return {
       admins: admins.adminsAddressList,
     };
@@ -58,26 +54,21 @@ export class ApiService {
     };
   }
 
-  public async buildCollection(
-    address: string,
-    collectionInfo: CollectionInfo,
-  ): Promise<any> {
-    this.logger.log(
-      `Add collection tokens to queue ${JSON.stringify(collectionInfo)}`,
-    );
+  public async buildCollection(address: string, collectionInfo: CollectionInfo): Promise<any> {
+    this.logger.log(`Add collection tokens to queue ${JSON.stringify(collectionInfo)}`);
 
-    await this.access.buildCollectionAccess(address, collectionInfo);
+    await this.access.checkCollectionAccess(address, collectionInfo);
 
     const tokenIds = await this.sdk.getCollectionTokens(collectionInfo);
 
-    await Promise.all(
-      tokenIds.map((tokenId) =>
-        this.addTokenToQueue({
-          ...collectionInfo,
-          tokenId,
-        }),
-      ),
+    const addAllPromises = tokenIds.map((tokenId) =>
+      this.addTokenToQueue({
+        ...collectionInfo,
+        tokenId,
+      }),
     );
+
+    await Promise.all(addAllPromises);
 
     return {
       tokens: tokenIds,
@@ -87,34 +78,17 @@ export class ApiService {
   public async buildToken(address: string, tokenInfo: TokenInfo): Promise<any> {
     this.logger.log(`Add token to queue ${JSON.stringify(tokenInfo)}`);
 
-    await this.access.buildTokenAccess(address, tokenInfo);
+    await this.access.checkTokenAccess(address, tokenInfo);
 
-    const sendResult = this.rmqClient.emit<any, TokenInfo>(
-      RmqPatterns.BUILD_TOKEN,
-      {
-        ...tokenInfo,
-      },
-    );
-
-    sendResult
-      .pipe(
-        catchError((err) => {
-          this.logger.error('fail add token to queue', tokenInfo, err);
-          return err;
-        }),
-      )
-      .subscribe();
+    await this.addTokenToQueue(tokenInfo);
 
     return { ok: true };
   }
 
   private async addTokenToQueue(tokenInfo: TokenInfo): Promise<void> {
-    const sendResult = this.rmqClient.emit<any, TokenInfo>(
-      RmqPatterns.BUILD_TOKEN,
-      {
-        ...tokenInfo,
-      },
-    );
+    const sendResult = this.rmqClient.emit<any, TokenInfo>(RmqPatterns.BUILD_TOKEN, {
+      ...tokenInfo,
+    });
 
     await lastValueFrom(
       sendResult.pipe(

@@ -1,16 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import {
-  CollectionData,
-  GetBundleResponse,
-  Room,
-  TokenByIdResponse,
-} from '@unique-nft/sdk';
-import {
-  ChainType,
-  CollectionInfo,
-  SubscribeCallback,
-  TokenInfo,
-} from '../../types';
+import { CollectionData, GetBundleResponse, Room, TokenByIdResponse } from '@unique-nft/sdk';
+import { ChainType, CollectionInfo, SubscribeCallback, TokenInfo } from '../../types';
 import { ConfigService } from '@nestjs/config';
 import { SdkConfig } from '../../config';
 import { Sdk, SubscriptionEvents } from '@unique-nft/sdk/full';
@@ -19,8 +9,7 @@ import { Sdk, SubscriptionEvents } from '@unique-nft/sdk/full';
 export class SdkService {
   private sdkByChain: Record<ChainType, Sdk>;
   constructor(config: ConfigService) {
-    const { opalUrl, quartzUrl, uniqueUrl } =
-      config.getOrThrow<SdkConfig>('sdk');
+    const { opalUrl, quartzUrl, uniqueUrl } = config.getOrThrow<SdkConfig>('sdk');
 
     this.sdkByChain = {
       [ChainType.OPAL]: new Sdk({ baseUrl: opalUrl }),
@@ -34,10 +23,8 @@ export class SdkService {
       sdk.subscription
         .connect()
         .subscribeCollection()
-        .on(
-          SubscriptionEvents.COLLECTIONS,
-          (root: Room, eventData: CollectionData) =>
-            callback(chain as ChainType, eventData),
+        .on(SubscriptionEvents.COLLECTIONS, (root: Room, eventData: CollectionData) =>
+          callback(chain as ChainType, eventData),
         );
     });
   }
@@ -54,9 +41,7 @@ export class SdkService {
     return this.sdkByChain[chain].token.getBundle({ collectionId, tokenId });
   }
 
-  public async getCollectionOwner(
-    collectionInfo: CollectionInfo,
-  ): Promise<string> {
+  public async getCollectionOwner(collectionInfo: CollectionInfo): Promise<string> {
     const { chain, collectionId } = collectionInfo;
 
     const { owner } = await this.sdkByChain[chain].collection.get({
@@ -77,9 +62,7 @@ export class SdkService {
     return owner;
   }
 
-  public async getCollectionTokens(
-    collectionInfo: CollectionInfo,
-  ): Promise<number[]> {
+  public async getCollectionTokens(collectionInfo: CollectionInfo): Promise<number[]> {
     const { chain, collectionId } = collectionInfo;
 
     const { ids } = await this.sdkByChain[chain].collection.tokens({

@@ -6,8 +6,7 @@ import { AdminsConfig } from '../../config';
 import { CollectionInfo, TokenInfo } from '../../types';
 import { SdkService } from '../sdk';
 
-const checkAddressEqual = (left: string) => (right: string) =>
-  Address.compare.substrateAddresses(left, right);
+const checkAddressEqual = (left: string) => (right: string) => Address.compare.substrateAddresses(left, right);
 
 @Injectable()
 export class ApiAccess {
@@ -19,10 +18,7 @@ export class ApiAccess {
     this.adminsConfig = config.getOrThrow<AdminsConfig>('admins');
   }
 
-  private async checkCollectionOwner(
-    address: string,
-    collectionInfo: CollectionInfo,
-  ): Promise<void> {
+  private async checkCollectionOwner(address: string, collectionInfo: CollectionInfo): Promise<void> {
     const { chain, collectionId } = collectionInfo;
 
     const owner = await this.sdk.getCollectionOwner({
@@ -42,10 +38,7 @@ export class ApiAccess {
     }
   }
 
-  private async checkTokenOwner(
-    address: string,
-    tokenInfo: TokenInfo,
-  ): Promise<void> {
+  private async checkTokenOwner(address: string, tokenInfo: TokenInfo): Promise<void> {
     const { chain, collectionId, tokenId } = tokenInfo;
 
     const owner = await this.sdk.getTokenOwner({
@@ -66,10 +59,7 @@ export class ApiAccess {
     }
   }
 
-  public async buildCollectionAccess(
-    address: string,
-    collectionInfo: CollectionInfo,
-  ) {
+  public async checkCollectionAccess(address: string, collectionInfo: CollectionInfo) {
     const isAddress = checkAddressEqual(address);
     const isAdmin = this.adminsConfig.adminsAddressList.some(isAddress);
 
@@ -78,12 +68,12 @@ export class ApiAccess {
     }
   }
 
-  public async buildTokenAccess(address: string, tokenInfo: TokenInfo) {
+  public async checkTokenAccess(address: string, tokenInfo: TokenInfo) {
     const isAddress = checkAddressEqual(address);
     const isAdmin = this.adminsConfig.adminsAddressList.some(isAddress);
 
     if (!isAdmin) {
-      await this.checkCollectionOwner(address, tokenInfo);
+      await this.checkTokenOwner(address, tokenInfo);
     }
   }
 }

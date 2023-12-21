@@ -2,13 +2,15 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { SdkService } from '../sdk';
 import { ChainType, RmqPatterns, RmqServiceNames, TokenInfo } from '../../types';
 import { CollectionData } from '@unique-nft/sdk';
-import { Address } from '@unique-nft/utils';
 import { ClientProxy } from '@nestjs/microservices';
 import { catchError } from 'rxjs';
+import { recognizers } from './recognizers';
 
 @Injectable()
 export class SubscriberService {
   private readonly logger = new Logger('SubscriberService');
+
+  private readonly recognizers = recognizers;
 
   constructor(
     private readonly sdk: SdkService,
@@ -18,33 +20,10 @@ export class SubscriberService {
     sdk.subscribe(this.onEvent.bind(this));
   }
 
-  private extractTokenFromAddress(chain: ChainType, address?: string): TokenInfo | null {
-    if (!address || !Address.is.nestingAddress(address)) return null;
-
-    const { collectionId, tokenId } = Address.nesting.addressToIds(address);
-
-    return { chain, collectionId, tokenId };
-  }
-
-  private extractTokenFromEvent(chain: ChainType, eventData: CollectionData): TokenInfo | null {
-    const { address, addressTo } = eventData.parsed;
-
-    const tokenFrom = this.extractTokenFromAddress(chain, address);
-    const tokenTo = this.extractTokenFromAddress(chain, addressTo);
-    const parentToken = tokenFrom || tokenTo;
-
-    if (parentToken) {
-      this.logger.log(`Found nesting event`);
-
-      return parentToken;
-    }
-
-    return null;
-  }
-
   private async onEvent(chain: ChainType, eventData: CollectionData) {
     const {
-      event: { method, section, block },
+      event: { method, section },
+      extrinsic: { block },
     } = eventData;
 
     this.logger.log(`Received event ${section}.${method} on ${chain}. Block: ${block?.id}`);
@@ -52,7 +31,7 @@ export class SubscriberService {
     const parentToken = this.extractTokenFromEvent(chain, eventData);
 
     if (!parentToken) {
-      this.logger.log(`No token found, ignoring event.`);
+      this.logger.debug(`No token found, ignoring event.`);
 
       return;
     }
@@ -66,6 +45,20 @@ export class SubscriberService {
     };
 
     this.enqueueToken(rootToken);
+  }
+
+  private extractTokenFromEvent(chain: ChainType, eventData: CollectionData): TokenInfo | null {
+    for (const recognizer of this.recognizers) {
+      const { token, description } = recognizer(chain, eventData);
+
+      if (token) {
+        this.logger.debug(description);
+
+        return token;
+      }
+    }
+
+    return null;
   }
 
   private enqueueToken(token: TokenInfo) {
