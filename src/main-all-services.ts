@@ -1,40 +1,34 @@
 import { NestFactory } from '@nestjs/core';
+import { ConfigService } from '@nestjs/config';
+import { Logger } from '@nestjs/common';
+import { NestExpressApplication } from '@nestjs/platform-express';
+
 import { AllServicesApp } from './modules/apps/all-services-app';
 import { addSwagger } from './modules/utils/swagger';
-import { NestExpressApplication } from '@nestjs/platform-express';
-import { MicroserviceOptions, Transport } from '@nestjs/microservices';
-import { ConfigService } from '@nestjs/config';
-import { RabbitMQConfig } from './config';
-import { RmqQueues } from './types';
-import { Logger } from '@nestjs/common';
+import { MicroserviceOptions } from '@nestjs/microservices';
+import { getQueuesConfigs } from './modules/utils/rmq';
 
 async function bootstrap() {
   const logger = new Logger(bootstrap.name);
   const app = await NestFactory.create<NestExpressApplication>(AllServicesApp);
 
   const config = app.get(ConfigService);
-  const rmqConfig = config.getOrThrow<RabbitMQConfig>('rmq');
+  const queuesConfigs = getQueuesConfigs(config);
 
-  const microservice = app.connectMicroservice<MicroserviceOptions>({
-    transport: Transport.RMQ,
-    options: {
-      urls: rmqConfig.urls,
-      queue: RmqQueues.ANALYZER_QUEUE,
-      queueOptions: { durable: false },
-      prefetchCount: 1,
-    },
-  });
-  await microservice.listen();
-  logger.log('Microservice listening');
+  const analyzerMicroservice = app.connectMicroservice<MicroserviceOptions>(queuesConfigs.subscribers.analyzer);
+  await analyzerMicroservice.listen();
+  logger.log('Analyzer microservice listening');
+
+  const renderMicroservice = app.connectMicroservice<MicroserviceOptions>(queuesConfigs.subscribers.render);
+  await renderMicroservice.listen();
+  logger.log('Render microservice listening');
 
   addSwagger(app);
 
   const port = 3000;
   await app.listen(port);
 
-  logger.log(
-    `Application started at :${port}, swagger: http://localhost:${port}/api/swagger`,
-  );
+  logger.log(`Application started at :${port}, swagger: http://localhost:${port}/api/swagger`);
 }
 
 bootstrap();

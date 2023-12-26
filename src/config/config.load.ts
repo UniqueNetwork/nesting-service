@@ -28,6 +28,7 @@ const loadAuth = (): AuthConfig => ({
 
 const loadRmq = (): RabbitMQConfig => ({
   urls: [getStringOrThrow('RABBIT_MQ_URL')],
+  prefetchCount: +getStringOrThrow('RABBIT_MQ_PREFETCH_COUNT', '10'),
 });
 
 const loadSdk = (): SdkConfig => ({
