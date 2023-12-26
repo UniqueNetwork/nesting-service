@@ -1,10 +1,11 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { SdkService } from '../sdk';
-import { ChainType, RmqPatterns, RmqServiceNames, TokenInfo } from '../../types';
+import { ChainType, RmqPatterns, TokenInfo } from '../../types';
 import { CollectionData } from '@unique-nft/sdk';
 import { ClientProxy } from '@nestjs/microservices';
 import { catchError } from 'rxjs';
 import { recognizers } from './recognizers';
+import { InjectAnalyzerQueue } from '../utils/rmq';
 
 @Injectable()
 export class SubscriberService {
@@ -14,8 +15,7 @@ export class SubscriberService {
 
   constructor(
     private readonly sdk: SdkService,
-    @Inject(RmqServiceNames.ANALYZER_QUEUE_SERVICE)
-    private rmqClient: ClientProxy,
+    @InjectAnalyzerQueue private analyzerQueue: ClientProxy,
   ) {
     sdk.subscribe(this.onEvent.bind(this));
   }
@@ -62,7 +62,7 @@ export class SubscriberService {
   }
 
   private enqueueToken(token: TokenInfo) {
-    const sendResult = this.rmqClient.emit<any, TokenInfo>(RmqPatterns.BUILD_TOKEN, token);
+    const sendResult = this.analyzerQueue.emit<any, TokenInfo>(RmqPatterns.BUILD_TOKEN, token);
 
     sendResult
       .pipe(

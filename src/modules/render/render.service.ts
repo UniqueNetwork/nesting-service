@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { RenderImage, RenderTokenInfo } from '../../types';
+import { FileForUpload, RenderImage, RenderTokenInfo } from '../../types';
 import Jimp from 'jimp';
 import { ConfigService } from '@nestjs/config';
 import { RenderConfig } from '../../config';
@@ -35,23 +35,31 @@ export class RenderService {
   }
 
   public async render(renderInfo: RenderTokenInfo): Promise<void> {
-    this.logger.log('Render token', renderInfo);
+    const { images, tokenInfo } = renderInfo;
+    const { chain, collectionId, tokenId } = tokenInfo;
 
-    const { images, token } = renderInfo;
+    this.logger.log(`Rendering token ${chain}/${collectionId}/${tokenId}`);
+    this.logger.debug(`Images: ${JSON.stringify(images)}`);
 
     const mergedJimp = await this.mergeImages(images);
 
     const extension = mergedJimp.getExtension();
-    const filename = `${token.chain}/${token.collectionId}/${token.tokenId}.${extension}`;
+    const filename = `${tokenInfo.chain}/${tokenInfo.collectionId}/${tokenInfo.tokenId}.${extension}`;
 
     const content = await mergedJimp.getBufferAsync(mergedJimp.getMIME());
 
     this.logger.log('render complete');
 
-    await this.minioService.uploadFile({
-      token,
+    const fileForUpload: FileForUpload = {
+      tokenInfo,
       content,
       filename,
-    });
+      metadata: {
+        'content-type': mergedJimp.getMIME(),
+        timestamp: Date.now().toString(),
+      },
+    };
+
+    await this.minioService.upload(fileForUpload);
   }
 }

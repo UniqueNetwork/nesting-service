@@ -1,9 +1,10 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
-import { RenderImage, RenderTokenInfo, RmqPatterns, RmqServiceNames, TokenInfo } from '../../types';
+import { Injectable, Logger } from '@nestjs/common';
+import { RenderImage, RenderTokenInfo, RmqPatterns, TokenInfo } from '../../types';
 import { ClientProxy } from '@nestjs/microservices';
 import { lastValueFrom } from 'rxjs';
 import { TokenByIdResponse } from '@unique-nft/sdk';
 import { SdkService } from '../sdk';
+import { InjectRenderQueue } from '../utils/rmq';
 
 @Injectable()
 export class AnalyzerService {
@@ -11,8 +12,7 @@ export class AnalyzerService {
 
   constructor(
     private readonly sdkService: SdkService,
-    @Inject(RmqServiceNames.ANALYZER_QUEUE_SERVICE)
-    private rmqClient: ClientProxy,
+    @InjectRenderQueue private renderQueue: ClientProxy,
   ) {}
 
   private getTokenImageLayer(
@@ -78,15 +78,10 @@ export class AnalyzerService {
     }
 
     const renderInfo: RenderTokenInfo = {
-      token: {
-        chain,
-        collectionId,
-        tokenId,
-      },
+      tokenInfo,
       images,
-      filename: `${chain}/${collectionId}/${tokenId}.png`,
     };
 
-    await lastValueFrom(this.rmqClient.emit(RmqPatterns.RENDER_IMAGES, renderInfo));
+    await lastValueFrom(this.renderQueue.emit(RmqPatterns.RENDER_IMAGES, renderInfo));
   }
 }

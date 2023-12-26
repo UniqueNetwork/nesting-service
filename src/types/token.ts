@@ -18,7 +18,6 @@ export interface RenderImage {
 }
 
 export interface RenderTokenInfo {
-  token: TokenInfo;
+  tokenInfo: TokenInfo;
   images: RenderImage[];
-  filename: string;
 }

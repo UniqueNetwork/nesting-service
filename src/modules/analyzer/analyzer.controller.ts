@@ -1,5 +1,5 @@
 import { Controller, Inject } from '@nestjs/common';
-import { MessagePattern, Payload } from '@nestjs/microservices';
+import { Ctx, MessagePattern, Payload, RmqContext } from '@nestjs/microservices';
 import { RmqPatterns, TokenInfo } from '../../types';
 import { AnalyzerService } from './analyzer.service';
 
@@ -9,9 +9,11 @@ export class AnalyzerController {
   private analyzerService: AnalyzerService;
 
   @MessagePattern(RmqPatterns.BUILD_TOKEN)
-  public async buildTokenReceiver(
-    @Payload() payload: TokenInfo,
-  ): Promise<void> {
+  public async buildTokenReceiver(@Payload() payload: TokenInfo, @Ctx() context: RmqContext): Promise<void> {
     await this.analyzerService.buildToken(payload);
+
+    const channel = context.getChannelRef();
+    const originalMsg = context.getMessage();
+    channel.ack(originalMsg);
   }
 }

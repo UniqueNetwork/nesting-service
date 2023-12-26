@@ -5,6 +5,7 @@ export interface AuthConfig {
 
 export interface RabbitMQConfig {
   urls: string[];
+  prefetchCount: number;
 }
 
 export interface SdkConfig {

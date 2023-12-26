@@ -5,11 +5,12 @@ import { signatureVerify } from '@polkadot/util-crypto';
 import { UnauthorizedException } from '@nestjs/common/exceptions/unauthorized.exception';
 import { ClientProxy } from '@nestjs/microservices';
 import { catchError, lastValueFrom } from 'rxjs';
-import { CollectionInfo, RmqPatterns, RmqServiceNames, TokenInfo } from '../../types';
+import { CollectionInfo, RmqPatterns, TokenInfo } from '../../types';
 import { ApiAccess } from './api.access';
 import { ConfigService } from '@nestjs/config';
 import { AdminsConfig } from '../../config';
 import { SdkService } from '../sdk';
+import { InjectAnalyzerQueue } from '../utils/rmq';
 
 @Injectable()
 export class ApiService {
@@ -26,8 +27,7 @@ export class ApiService {
 
   constructor(
     private readonly config: ConfigService,
-    @Inject(RmqServiceNames.ANALYZER_QUEUE_SERVICE)
-    private rmqClient: ClientProxy,
+    @InjectAnalyzerQueue private analyzerQueue: ClientProxy,
   ) {}
 
   public async getConfiguration(): Promise<any> {
@@ -61,12 +61,14 @@ export class ApiService {
 
     const tokenIds = await this.sdk.getCollectionTokens(collectionInfo);
 
-    const addAllPromises = tokenIds.map((tokenId) =>
-      this.addTokenToQueue({
-        ...collectionInfo,
-        tokenId,
-      }),
-    );
+    const addAllPromises = tokenIds
+      .sort((a, b) => a - b)
+      .map((tokenId) =>
+        this.addTokenToQueue({
+          ...collectionInfo,
+          tokenId,
+        }),
+      );
 
     await Promise.all(addAllPromises);
 
@@ -86,7 +88,7 @@ export class ApiService {
   }
 
   private async addTokenToQueue(tokenInfo: TokenInfo): Promise<void> {
-    const sendResult = this.rmqClient.emit<any, TokenInfo>(RmqPatterns.BUILD_TOKEN, {
+    const sendResult = this.analyzerQueue.emit<any, TokenInfo>(RmqPatterns.BUILD_TOKEN, {
       ...tokenInfo,
     });
 

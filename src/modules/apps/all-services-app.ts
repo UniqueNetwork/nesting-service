@@ -3,15 +3,15 @@ import { ApiModule } from '../api';
 import { GlobalConfigModule } from '../../config';
 import { AuthModule } from '../auth/auth.module';
 import { AnalyzerModule } from '../analyzer';
-import { ClientsModule, Transport } from '@nestjs/microservices';
+import { ClientsModule } from '@nestjs/microservices';
 import { ConfigService } from '@nestjs/config';
-import { RmqQueues, RmqServiceNames } from '../../types';
-import { RabbitMQConfig } from '../../config';
+import { RmqServiceNames } from '../../types';
 import { RenderModule } from '../render';
 import { BaseExceptionsFilter } from '../utils/exception.filters';
 import { APP_FILTER } from '@nestjs/core';
 import { MinioModule } from '../storage';
 import { SubscriberModule } from '../subscriber';
+import { getQueuesConfigs } from '../utils/rmq';
 
 @Module({
   imports: [
@@ -23,19 +23,12 @@ import { SubscriberModule } from '../subscriber';
         {
           inject: [ConfigService],
           name: RmqServiceNames.ANALYZER_QUEUE_SERVICE,
-          useFactory: (config: ConfigService) => {
-            const rmqConfig: RabbitMQConfig = config.getOrThrow('rmq');
-            return {
-              transport: Transport.RMQ,
-              options: {
-                urls: rmqConfig.urls,
-                queue: RmqQueues.ANALYZER_QUEUE,
-                queueOptions: {
-                  durable: false,
-                },
-              },
-            };
-          },
+          useFactory: (config: ConfigService) => getQueuesConfigs(config).producers.analyzer,
+        },
+        {
+          inject: [ConfigService],
+          name: RmqServiceNames.RENDER_QUEUE_SERVICE,
+          useFactory: (config: ConfigService) => getQueuesConfigs(config).producers.render,
         },
       ],
     }),
