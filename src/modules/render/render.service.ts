@@ -4,6 +4,8 @@ import Jimp from 'jimp';
 import { ConfigService } from '@nestjs/config';
 import { RenderConfig } from '../../config';
 import { MinioService } from '../storage';
+import { ImageFetchService } from './image-fetch.service';
+import { getLoggerPrefix } from '../utils';
 
 @Injectable()
 export class RenderService {
@@ -14,19 +16,22 @@ export class RenderService {
   constructor(
     config: ConfigService,
     private readonly minioService: MinioService,
+    private readonly imageFetchService: ImageFetchService,
   ) {
     this.renderConfig = config.getOrThrow<RenderConfig>('render');
   }
 
   private async mergeImages(images: RenderImage[]): Promise<Jimp> {
-    if (!images.length) throw new Error('No images to merge');
+    if (!images.length) throw new Error('no images to merge');
 
     const [firstImage, ...restImages] = images;
 
-    const jimpImage = await Jimp.read(firstImage.url);
+    const imageBuffer = await this.imageFetchService.fetchWithCache(firstImage.url);
+    const jimpImage = await Jimp.read(imageBuffer);
 
     for (const { url } of restImages) {
-      const childImage = await Jimp.read(url);
+      const childImageBuffer = await this.imageFetchService.fetchWithCache(url);
+      const childImage = await Jimp.read(childImageBuffer);
 
       jimpImage.composite(childImage, 0, 0);
     }
@@ -36,10 +41,9 @@ export class RenderService {
 
   public async render(renderInfo: RenderTokenInfo): Promise<void> {
     const { images, tokenInfo } = renderInfo;
-    const { chain, collectionId, tokenId } = tokenInfo;
 
-    this.logger.log(`Rendering token ${chain}/${collectionId}/${tokenId}`);
-    this.logger.debug(`Images: ${JSON.stringify(images)}`);
+    this.logger.log(`${getLoggerPrefix(tokenInfo)} Rendering token`);
+    this.logger.debug(`${getLoggerPrefix(tokenInfo)} Images: ${JSON.stringify(images)}`);
 
     const mergedJimp = await this.mergeImages(images);
 
@@ -48,7 +52,7 @@ export class RenderService {
 
     const content = await mergedJimp.getBufferAsync(mergedJimp.getMIME());
 
-    this.logger.log('render complete');
+    this.logger.log(`${getLoggerPrefix(tokenInfo)} Rendering complete`);
 
     const fileForUpload: FileForUpload = {
       tokenInfo,

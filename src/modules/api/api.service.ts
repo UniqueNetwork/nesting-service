@@ -10,7 +10,7 @@ import { ApiAccess } from './api.access';
 import { ConfigService } from '@nestjs/config';
 import { AdminsConfig } from '../../config';
 import { SdkService } from '../sdk';
-import { InjectAnalyzerQueue } from '../utils/rmq';
+import { InjectAnalyzerQueue, getLoggerPrefix } from '../utils';
 
 @Injectable()
 export class ApiService {
@@ -55,7 +55,7 @@ export class ApiService {
   }
 
   public async buildCollection(address: string, collectionInfo: CollectionInfo): Promise<any> {
-    this.logger.log(`Add collection tokens to queue ${JSON.stringify(collectionInfo)}`);
+    this.logger.log(`${getLoggerPrefix(collectionInfo)} Adding collection tokens to queue`);
 
     await this.access.checkCollectionAccess(address, collectionInfo);
 
@@ -72,13 +72,15 @@ export class ApiService {
 
     await Promise.all(addAllPromises);
 
+    this.logger.log(`${getLoggerPrefix(collectionInfo)} Added ${tokenIds.length} tokens to queue`);
+
     return {
       tokens: tokenIds,
     };
   }
 
   public async buildToken(address: string, tokenInfo: TokenInfo): Promise<any> {
-    this.logger.log(`Add token to queue ${JSON.stringify(tokenInfo)}`);
+    this.logger.log(`${getLoggerPrefix(tokenInfo)} Adding token to queue`);
 
     await this.access.checkTokenAccess(address, tokenInfo);
 
@@ -95,7 +97,7 @@ export class ApiService {
     await lastValueFrom(
       sendResult.pipe(
         catchError((err) => {
-          this.logger.error('fail add token to queue', tokenInfo, err);
+          this.logger.error(`${getLoggerPrefix(tokenInfo)} Failed add token to queue: ${err}`);
           return err;
         }),
       ),

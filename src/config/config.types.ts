@@ -27,6 +27,12 @@ export interface AdminsConfig {
   adminsAddressList: string[];
 }
 
+export interface FetchConfig {
+  timeout: number;
+  cacheTTL: number;
+  cacheMaxItems: number;
+}
+
 export interface AppConfig {
   auth: AuthConfig;
   rmq: RabbitMQConfig;
@@ -34,4 +40,5 @@ export interface AppConfig {
   render: RenderConfig;
   minio: MinioConfig;
   admins: AdminsConfig;
+  fetch: FetchConfig;
 }

@@ -5,7 +5,7 @@ export enum ChainType {
 }
 
 export interface CollectionInfo {
-  chain: ChainType;
+  chain: ChainType | `${ChainType}` | string;
   collectionId: number;
 }
 

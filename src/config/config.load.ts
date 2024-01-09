@@ -2,6 +2,7 @@ import {
   AdminsConfig,
   AppConfig,
   AuthConfig,
+  FetchConfig,
   MinioConfig,
   RabbitMQConfig,
   RenderConfig,
@@ -67,6 +68,12 @@ const loadAdmins = (): AdminsConfig => {
   };
 };
 
+const loadFetch = (): FetchConfig => ({
+  timeout: +getStringOrThrow('FETCH_TIMEOUT', '10000'),
+  cacheTTL: +getStringOrThrow('FETCH_CACHE_TTL', '15000'),
+  cacheMaxItems: +getStringOrThrow('FETCH_CACHE_MAX_ITEMS', '100'),
+});
+
 export const configLoad = (): AppConfig => {
   return {
     auth: loadAuth(),
@@ -75,5 +82,6 @@ export const configLoad = (): AppConfig => {
     render: loadRender(),
     minio: loadMinio(),
     admins: loadAdmins(),
+    fetch: loadFetch(),
   };
 };

@@ -1,11 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { SdkService } from '../sdk';
-import { ChainType, RmqPatterns, TokenInfo } from '../../types';
 import { CollectionData } from '@unique-nft/sdk';
 import { ClientProxy } from '@nestjs/microservices';
 import { catchError } from 'rxjs';
+
+import { ChainType, RmqPatterns, TokenInfo } from '../../types';
+import { SdkService } from '../sdk';
 import { recognizers } from './recognizers';
-import { InjectAnalyzerQueue } from '../utils/rmq';
+import { InjectAnalyzerQueue, getLoggerPrefix } from '../utils';
 
 @Injectable()
 export class SubscriberService {
@@ -67,7 +68,7 @@ export class SubscriberService {
     sendResult
       .pipe(
         catchError((err) => {
-          this.logger.error('failed add token to queue', token, err);
+          this.logger.error(`${getLoggerPrefix(token)} Failed add token to queue: ${err}`);
 
           return err;
         }),

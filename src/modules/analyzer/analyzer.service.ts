@@ -4,7 +4,7 @@ import { ClientProxy } from '@nestjs/microservices';
 import { lastValueFrom } from 'rxjs';
 import { TokenByIdResponse } from '@unique-nft/sdk';
 import { SdkService } from '../sdk';
-import { InjectRenderQueue } from '../utils/rmq';
+import { InjectRenderQueue, getLoggerPrefix } from '../utils';
 
 @Injectable()
 export class AnalyzerService {
@@ -42,12 +42,12 @@ export class AnalyzerService {
       }
     }
 
-    this.logger.warn(`Couldn't find an image for token ${chain}- ${token.collectionId}/${token.tokenId}!`);
+    this.logger.warn(`${getLoggerPrefix({ ...token, chain })} Couldn't find an image for token!`);
     return null;
   }
 
   public async buildToken(tokenInfo: TokenInfo): Promise<void> {
-    this.logger.log('Building token', tokenInfo);
+    this.logger.log(`${getLoggerPrefix(tokenInfo)} Going to build token`);
     const { chain, collectionId, tokenId } = tokenInfo;
 
     const [bundle, token] = await Promise.all([
@@ -72,7 +72,7 @@ export class AnalyzerService {
       .filter((image): image is RenderImage => !!image);
 
     if (!images.length) {
-      this.logger.log(`No images to render token: ${chain}/${collectionId}/${tokenId}, ignoring.`);
+      this.logger.log(`${getLoggerPrefix(tokenInfo)} No images for token, ignoring.`);
 
       return;
     }
@@ -83,5 +83,7 @@ export class AnalyzerService {
     };
 
     await lastValueFrom(this.renderQueue.emit(RmqPatterns.RENDER_IMAGES, renderInfo));
+
+    this.logger.log(`${getLoggerPrefix(tokenInfo)} Token build complete, images sent to render queue`);
   }
 }
