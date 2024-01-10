@@ -23,14 +23,25 @@ export class SdkService {
 
   public subscribe(callback: SubscribeCallback) {
     Object.entries(this.sdkByChain).forEach(([chain, sdk]) => {
-      sdk.subscription
-        .connect()
-        .subscribeCollection()
-        .on(SubscriptionEvents.COLLECTIONS, (root: Room, eventData: CollectionData) =>
-          callback(chain as ChainType, eventData),
-        );
+      const socketClient = sdk.subscription.connect();
 
-      this.logger.log(`Subscribed to ${chain} events (${sdk.options.baseUrl})`);
+      socketClient.on(SubscriptionEvents.COLLECTIONS, (root: Room, eventData: CollectionData) =>
+        callback(chain as ChainType, eventData),
+      );
+
+      socketClient.socket.on('disconnect', (reason, description) => {
+        const descriptionString = JSON.stringify(description);
+
+        this.logger.log(`[${chain}] Socket disconnected, reason: ${reason}, description: ${descriptionString}`);
+      });
+
+      socketClient.socket.on('connect', () => {
+        this.logger.log(`[${chain}] Socket connected`);
+
+        socketClient.subscribeCollection();
+
+        this.logger.log(`[${chain}] (re)Subscribed to collections`);
+      });
     });
   }
 
