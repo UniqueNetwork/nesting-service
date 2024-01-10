@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { CollectionData, GetBundleResponse, Room, TokenByIdResponse } from '@unique-nft/sdk';
 import { ChainType, CollectionInfo, SubscribeCallback, TokenInfo } from '../../types';
 import { ConfigService } from '@nestjs/config';
@@ -8,6 +8,9 @@ import { Sdk, SubscriptionEvents } from '@unique-nft/sdk/full';
 @Injectable()
 export class SdkService {
   private sdkByChain: Record<ChainType, Sdk>;
+
+  private readonly logger = new Logger('SdkService');
+
   constructor(config: ConfigService) {
     const { opalUrl, quartzUrl, uniqueUrl } = config.getOrThrow<SdkConfig>('sdk');
 
@@ -26,6 +29,8 @@ export class SdkService {
         .on(SubscriptionEvents.COLLECTIONS, (root: Room, eventData: CollectionData) =>
           callback(chain as ChainType, eventData),
         );
+
+      this.logger.log(`Subscribed to ${chain} events (${sdk.options.baseUrl})`);
     });
   }
 

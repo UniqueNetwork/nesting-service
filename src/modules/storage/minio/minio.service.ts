@@ -3,7 +3,7 @@ import { MINIO_CONNECTION } from 'nestjs-minio';
 import { Client } from 'minio';
 import { ConfigService } from '@nestjs/config';
 
-import { FileForUpload } from '../../../types';
+import { CollectionInfo, FileForUpload } from '../../../types';
 import { MinioConfig } from '../../../config';
 import { getLoggerPrefix } from '../../utils';
 
@@ -29,5 +29,27 @@ export class MinioService {
     await this.minioClient.putObject(this.minioConfig.bucketName, filename, content, metadata);
 
     this.logger.log(`${getLoggerPrefix(tokenInfo)} Upload complete`);
+  }
+
+  getExistingImages(collectionInfo: CollectionInfo): Promise<string[]> {
+    const prefix = `${collectionInfo.chain}/${collectionInfo.collectionId}/`;
+
+    const itemBucketStream = this.minioClient.listObjectsV2(this.minioConfig.bucketName, prefix, true);
+
+    const items: string[] = [];
+
+    return new Promise<any[]>((resolve, reject) => {
+      itemBucketStream.on('data', (item) => {
+        items.push(item.name || '');
+      });
+
+      itemBucketStream.on('error', (err: any) => {
+        reject(err);
+      });
+
+      itemBucketStream.on('end', () => {
+        resolve(items);
+      });
+    });
   }
 }

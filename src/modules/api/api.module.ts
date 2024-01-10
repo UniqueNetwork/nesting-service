@@ -5,9 +5,10 @@ import { AuthModule } from '../auth/auth.module';
 import { SdkService } from '../sdk';
 import { ApiAccess } from './api.access';
 import { RootController } from './root.controller';
+import { MinioModule } from '../storage';
 
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, MinioModule],
   controllers: [ApiController, RootController],
   providers: [ApiService, SdkService, ApiAccess],
 })

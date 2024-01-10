@@ -11,6 +11,7 @@ import { ConfigService } from '@nestjs/config';
 import { AdminsConfig } from '../../config';
 import { SdkService } from '../sdk';
 import { InjectAnalyzerQueue, getLoggerPrefix } from '../utils';
+import { MinioService } from '../storage';
 
 @Injectable()
 export class ApiService {
@@ -27,6 +28,7 @@ export class ApiService {
 
   constructor(
     private readonly config: ConfigService,
+    private readonly minio: MinioService,
     @InjectAnalyzerQueue private analyzerQueue: ClientProxy,
   ) {}
 
@@ -102,5 +104,37 @@ export class ApiService {
         }),
       ),
     );
+  }
+
+  /**
+   * Check collection for missing tokens
+   * todo - add to REST API ?
+   * @param collectionInfo
+   */
+  async checkCollection(collectionInfo: CollectionInfo): Promise<void> {
+    this.logger.log(`${getLoggerPrefix(collectionInfo)} Checking collection`);
+
+    const { chain, collectionId } = collectionInfo;
+
+    const tokenIds = await this.sdk.getCollectionTokens(collectionInfo);
+    const sortedTokenIds = tokenIds.sort((a, b) => a - b);
+
+    const existing = await this.minio.getExistingImages(collectionInfo);
+    const existingSet = new Set(existing);
+
+    for (const tokenId of sortedTokenIds) {
+      const fileName = `${chain}/${collectionId}/${tokenId}.png`;
+
+      if (!existingSet.has(fileName)) {
+        this.logger.log(`${getLoggerPrefix(collectionInfo)} Adding token to queue`);
+
+        await this.addTokenToQueue({
+          ...collectionInfo,
+          tokenId,
+        });
+      }
+    }
+
+    this.logger.log(`${getLoggerPrefix(collectionInfo)} Checking collection complete`);
   }
 }

@@ -1,3 +1,5 @@
+import { LogLevel } from '@nestjs/common/services/logger.service';
+
 export interface AuthConfig {
   jwtSecret: string;
   jwtExpiresTime: number;
@@ -15,6 +17,10 @@ export interface SdkConfig {
 }
 
 export interface RenderConfig {}
+
+export interface LoggerConfig {
+  levels: LogLevel[];
+}
 
 export interface MinioConfig {
   endPoint: string;
@@ -41,4 +47,5 @@ export interface AppConfig {
   minio: MinioConfig;
   admins: AdminsConfig;
   fetch: FetchConfig;
+  logger: LoggerConfig;
 }

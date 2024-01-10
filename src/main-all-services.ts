@@ -2,17 +2,19 @@ import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { Logger } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
+import { MicroserviceOptions } from '@nestjs/microservices';
 
 import { AllServicesApp } from './modules/apps/all-services-app';
-import { addSwagger } from './modules/utils/swagger';
-import { MicroserviceOptions } from '@nestjs/microservices';
-import { getQueuesConfigs } from './modules/utils/rmq';
+import { addSwagger, getQueuesConfigs } from './modules/utils';
+import { LoggerConfig } from './config';
 
 async function bootstrap() {
   const logger = new Logger(bootstrap.name);
   const app = await NestFactory.create<NestExpressApplication>(AllServicesApp);
 
   const config = app.get(ConfigService);
+  Logger.overrideLogger(config.getOrThrow<LoggerConfig>('logger').levels);
+
   const queuesConfigs = getQueuesConfigs(config);
 
   const analyzerMicroservice = app.connectMicroservice<MicroserviceOptions>(queuesConfigs.subscribers.analyzer);

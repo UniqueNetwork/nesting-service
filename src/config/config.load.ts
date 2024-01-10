@@ -3,6 +3,7 @@ import {
   AppConfig,
   AuthConfig,
   FetchConfig,
+  LoggerConfig,
   MinioConfig,
   RabbitMQConfig,
   RenderConfig,
@@ -13,6 +14,7 @@ import 'dotenv/config';
 import { CHAIN_CONFIG } from '@unique-nft/sdk';
 import { Address } from '@unique-nft/utils/address';
 import { Logger } from '@nestjs/common';
+import { LogLevel } from '@nestjs/common/services/logger.service';
 
 const getStringOrThrow = (key: string, defaultValue?: string): string => {
   const value = process.env[key] || defaultValue;
@@ -74,6 +76,21 @@ const loadFetch = (): FetchConfig => ({
   cacheMaxItems: +getStringOrThrow('FETCH_CACHE_MAX_ITEMS', '100'),
 });
 
+const getLogLevels = (): LogLevel[] => {
+  const minLevel = getStringOrThrow('LOG_LEVEL', 'log') as LogLevel;
+
+  const logLevelsSorted: LogLevel[] = ['fatal', 'error', 'warn', 'log', 'debug', 'verbose'];
+  const minLevelIndex = logLevelsSorted.indexOf(minLevel);
+
+  if (minLevelIndex === -1) throw new Error(`Invalid log level: ${minLevel}`);
+
+  return logLevelsSorted.slice(0, minLevelIndex + 1);
+};
+
+const loadLogger = (): LoggerConfig => ({
+  levels: getLogLevels(),
+});
+
 export const configLoad = (): AppConfig => {
   return {
     auth: loadAuth(),
@@ -83,5 +100,6 @@ export const configLoad = (): AppConfig => {
     minio: loadMinio(),
     admins: loadAdmins(),
     fetch: loadFetch(),
+    logger: loadLogger(),
   };
 };
