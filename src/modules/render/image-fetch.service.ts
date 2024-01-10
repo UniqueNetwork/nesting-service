@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { CacheService } from './cache.service';
@@ -7,6 +7,8 @@ import { lastValueFrom } from 'rxjs';
 @Injectable()
 export class ImageFetchService {
   readonly timeout: number;
+
+  readonly logger = new Logger(ImageFetchService.name);
 
   constructor(
     private readonly http: HttpService,
@@ -18,13 +20,19 @@ export class ImageFetchService {
   }
 
   public async fetchWithCache(url: string): Promise<Buffer> {
-    const cached = this.cacheService.get(url);
-    if (cached) return cached;
+    try {
+      const cached = this.cacheService.get(url);
+      if (cached) return cached;
 
-    const fetched = await this.fetch(url);
-    this.cacheService.set(url, fetched);
+      const fetched = await this.fetch(url);
+      this.cacheService.set(url, fetched);
 
-    return fetched;
+      return fetched;
+    } catch (error) {
+      this.logger.error(`Failed to fetch ${url}: ${error.message}`);
+
+      throw error;
+    }
   }
 
   public async fetch(url: string): Promise<Buffer> {
