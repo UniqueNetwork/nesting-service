@@ -42,8 +42,7 @@ const loadRmq = (): RabbitMQConfig => ({
 const loadSdk = (): SdkConfig => ({
   opalUrl: getStringOrThrow('OPAL_REST_URL', CHAIN_CONFIG.opal.restUrl),
   quartzUrl: getStringOrThrow('QUARTZ_REST_URL', CHAIN_CONFIG.quartz.restUrl),
-  // uniqueUrl: getStringOrThrow('UNIQUE_REST_URL', CHAIN_CONFIG.unique.restUrl),
-  uniqueUrl: getStringOrThrow('UNIQUE_REST_URL', 'http://localhost:3000/v1'),
+  uniqueUrl: getStringOrThrow('UNIQUE_REST_URL', CHAIN_CONFIG.unique.restUrl),
 });
 
 const loadRender = (): RenderConfig => ({});
