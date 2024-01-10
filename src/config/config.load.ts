@@ -1,5 +1,6 @@
 import {
   AdminsConfig,
+  ApiConfig,
   AppConfig,
   AuthConfig,
   FetchConfig,
@@ -24,6 +25,10 @@ const getStringOrThrow = (key: string, defaultValue?: string): string => {
   return value;
 };
 
+const loadApi = (): ApiConfig => ({
+  port: +getStringOrThrow('PORT', '3000'),
+});
+
 const loadAuth = (): AuthConfig => ({
   jwtSecret: getStringOrThrow('JWT_SECRET'),
   jwtExpiresTime: +getStringOrThrow('JWT_EXPIRES_TIME', '3600'),
@@ -37,7 +42,8 @@ const loadRmq = (): RabbitMQConfig => ({
 const loadSdk = (): SdkConfig => ({
   opalUrl: getStringOrThrow('OPAL_REST_URL', CHAIN_CONFIG.opal.restUrl),
   quartzUrl: getStringOrThrow('QUARTZ_REST_URL', CHAIN_CONFIG.quartz.restUrl),
-  uniqueUrl: getStringOrThrow('UNIQUE_REST_URL', CHAIN_CONFIG.unique.restUrl),
+  // uniqueUrl: getStringOrThrow('UNIQUE_REST_URL', CHAIN_CONFIG.unique.restUrl),
+  uniqueUrl: getStringOrThrow('UNIQUE_REST_URL', 'http://localhost:3000/v1'),
 });
 
 const loadRender = (): RenderConfig => ({});
@@ -93,6 +99,7 @@ const loadLogger = (): LoggerConfig => ({
 
 export const configLoad = (): AppConfig => {
   return {
+    api: loadApi(),
     auth: loadAuth(),
     rmq: loadRmq(),
     sdk: loadSdk(),

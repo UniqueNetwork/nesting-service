@@ -27,7 +27,7 @@ async function bootstrap() {
 
   addSwagger(app);
 
-  const port = 3000;
+  const port = config.getOrThrow<number>('api.port');
   await app.listen(port);
 
   logger.log(`Application started at :${port}, swagger: http://localhost:${port}/api/swagger`);

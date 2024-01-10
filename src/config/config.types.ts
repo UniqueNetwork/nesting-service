@@ -1,5 +1,9 @@
 import { LogLevel } from '@nestjs/common/services/logger.service';
 
+export interface ApiConfig {
+  port: number;
+}
+
 export interface AuthConfig {
   jwtSecret: string;
   jwtExpiresTime: number;
@@ -40,6 +44,7 @@ export interface FetchConfig {
 }
 
 export interface AppConfig {
+  api: ApiConfig;
   auth: AuthConfig;
   rmq: RabbitMQConfig;
   sdk: SdkConfig;
