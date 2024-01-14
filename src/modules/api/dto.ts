@@ -21,6 +21,14 @@ export class AuthTokenResponse {
   access_token: string;
 }
 
+export class QueuesStatusResponse {
+  @ApiProperty()
+  analyzer: number;
+
+  @ApiProperty()
+  render: number;
+}
+
 export class BuildCollectionDto implements CollectionInfo {
   @ApiProperty()
   @IsEnum(ChainType)

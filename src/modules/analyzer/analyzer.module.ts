@@ -1,11 +1,12 @@
 import { Module } from '@nestjs/common';
-import { AnalyzerController } from './analyzer.controller';
+import { AnalyzerProcessor } from './analyzer.processor';
 import { AnalyzerService } from './analyzer.service';
 import { SdkService } from '../sdk';
+import { importBullQueues } from '../utils';
+import { QueueName } from '../../types';
 
 @Module({
-  imports: [],
-  controllers: [AnalyzerController],
-  providers: [AnalyzerService, SdkService],
+  imports: [importBullQueues(QueueName.ANALYZER_QUEUE, QueueName.RENDER_QUEUE)],
+  providers: [AnalyzerService, SdkService, AnalyzerProcessor],
 })
 export class AnalyzerModule {}

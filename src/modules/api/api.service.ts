@@ -1,17 +1,16 @@
-import { AuthTokenResponse, GetAuthTokenDto } from './dto';
+import { AuthTokenResponse, GetAuthTokenDto, QueuesStatusResponse } from './dto';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { AuthService } from '../auth/auth.service';
 import { signatureVerify } from '@polkadot/util-crypto';
 import { UnauthorizedException } from '@nestjs/common/exceptions/unauthorized.exception';
-import { ClientProxy } from '@nestjs/microservices';
-import { catchError, lastValueFrom } from 'rxjs';
-import { CollectionInfo, RmqPatterns, TokenInfo } from '../../types';
+import { CollectionInfo, Priority, JobName, TokenInfo } from '../../types';
 import { ApiAccess } from './api.access';
 import { ConfigService } from '@nestjs/config';
 import { AdminsConfig } from '../../config';
 import { SdkService } from '../sdk';
-import { InjectAnalyzerQueue, getLoggerPrefix } from '../utils';
+import { getLoggerPrefix, getJobId, InjectAnalyzerQueue, InjectRenderQueue } from '../utils';
 import { MinioService } from '../storage';
+import { Queue } from 'bullmq';
 
 @Injectable()
 export class ApiService {
@@ -29,7 +28,8 @@ export class ApiService {
   constructor(
     private readonly config: ConfigService,
     private readonly minio: MinioService,
-    @InjectAnalyzerQueue private analyzerQueue: ClientProxy,
+    @InjectAnalyzerQueue private readonly analyzerQueue: Queue,
+    @InjectRenderQueue private readonly renderQueue: Queue,
   ) {}
 
   public async getConfiguration(): Promise<any> {
@@ -37,6 +37,21 @@ export class ApiService {
 
     return {
       admins: admins.adminsAddressList,
+    };
+  }
+
+  async getQueuesStatus(address: string): Promise<QueuesStatusResponse> {
+    this.access.checkIsAdmin(address);
+
+    const getActiveJobCounts = async (queue: Queue): Promise<number> => {
+      const { active, prioritized } = await queue.getJobCounts('active', 'prioritized');
+
+      return active + prioritized;
+    };
+
+    return {
+      analyzer: await getActiveJobCounts(this.analyzerQueue),
+      render: await getActiveJobCounts(this.renderQueue),
     };
   }
 
@@ -63,22 +78,18 @@ export class ApiService {
 
     const tokenIds = await this.sdk.getCollectionTokens(collectionInfo);
 
-    const addAllPromises = tokenIds
+    const tokenInfoArray = tokenIds
       .sort((a, b) => a - b)
-      .map((tokenId) =>
-        this.addTokenToQueue({
-          ...collectionInfo,
-          tokenId,
-        }),
-      );
+      .map((tokenId) => ({
+        ...collectionInfo,
+        tokenId,
+      }));
 
-    await Promise.all(addAllPromises);
+    await this.addToQueue(tokenInfoArray);
 
     this.logger.log(`${getLoggerPrefix(collectionInfo)} Added ${tokenIds.length} tokens to queue`);
 
-    return {
-      tokens: tokenIds,
-    };
+    return { tokens: tokenIds };
   }
 
   public async buildToken(address: string, tokenInfo: TokenInfo): Promise<any> {
@@ -86,24 +97,24 @@ export class ApiService {
 
     await this.access.checkTokenAccess(address, tokenInfo);
 
-    await this.addTokenToQueue(tokenInfo);
+    await this.addToQueue(tokenInfo);
 
     return { ok: true };
   }
 
-  private async addTokenToQueue(tokenInfo: TokenInfo): Promise<void> {
-    const sendResult = this.analyzerQueue.emit<any, TokenInfo>(RmqPatterns.BUILD_TOKEN, {
-      ...tokenInfo,
-    });
+  private async addToQueue(tokenInfo: TokenInfo | TokenInfo[], priority = Priority.LOW): Promise<void> {
+    const asArray = Array.isArray(tokenInfo) ? tokenInfo : [tokenInfo];
 
-    await lastValueFrom(
-      sendResult.pipe(
-        catchError((err) => {
-          this.logger.error(`${getLoggerPrefix(tokenInfo)} Failed add token to queue: ${err}`);
-          return err;
-        }),
-      ),
-    );
+    const jobs = asArray.map((token) => ({
+      name: JobName.BUILD_TOKEN,
+      data: { ...token, priority },
+      opts: {
+        jobId: getJobId(token),
+        priority,
+      },
+    }));
+
+    await this.analyzerQueue.addBulk(jobs);
   }
 
   /**
@@ -122,18 +133,14 @@ export class ApiService {
     const existing = await this.minio.getExistingImages(collectionInfo);
     const existingSet = new Set(existing);
 
-    for (const tokenId of sortedTokenIds) {
-      const fileName = `${chain}/${collectionId}/${tokenId}.png`;
+    const missingTokenInfo: TokenInfo[] = sortedTokenIds
+      .filter((tokenId) => !existingSet.has(`${chain}/${collectionId}/${tokenId}.png`))
+      .map((tokenId) => ({
+        ...collectionInfo,
+        tokenId,
+      }));
 
-      if (!existingSet.has(fileName)) {
-        this.logger.log(`${getLoggerPrefix(collectionInfo)} Adding token to queue`);
-
-        await this.addTokenToQueue({
-          ...collectionInfo,
-          tokenId,
-        });
-      }
-    }
+    await this.addToQueue(missingTokenInfo);
 
     this.logger.log(`${getLoggerPrefix(collectionInfo)} Checking collection complete`);
   }
