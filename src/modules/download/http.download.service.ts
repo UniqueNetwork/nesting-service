@@ -5,10 +5,10 @@ import { CacheService } from './cache.service';
 import { lastValueFrom } from 'rxjs';
 
 @Injectable()
-export class ImageFetchService {
+export class HttpDownloadService {
   readonly timeout: number;
 
-  readonly logger = new Logger(ImageFetchService.name);
+  readonly logger = new Logger(HttpDownloadService.name);
 
   constructor(
     private readonly http: HttpService,

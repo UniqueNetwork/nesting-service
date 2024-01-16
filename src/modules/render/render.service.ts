@@ -4,7 +4,7 @@ import Jimp from 'jimp';
 import { ConfigService } from '@nestjs/config';
 import { RenderConfig } from '../../config';
 import { MinioService } from '../storage';
-import { ImageFetchService } from './image-fetch.service';
+import { DownloadService } from '../download';
 import { getLoggerPrefix } from '../utils';
 
 @Injectable()
@@ -16,7 +16,7 @@ export class RenderService {
   constructor(
     config: ConfigService,
     private readonly minioService: MinioService,
-    private readonly imageFetchService: ImageFetchService,
+    private readonly downloadService: DownloadService,
   ) {
     this.renderConfig = config.getOrThrow<RenderConfig>('render');
   }
@@ -26,11 +26,11 @@ export class RenderService {
 
     const [firstImage, ...restImages] = images;
 
-    const imageBuffer = await this.imageFetchService.fetchWithCache(firstImage.url);
+    const imageBuffer = await this.downloadService.fetch(firstImage.url);
     const jimpImage = await Jimp.read(imageBuffer);
 
     for (const { url } of restImages) {
-      const childImageBuffer = await this.imageFetchService.fetchWithCache(url);
+      const childImageBuffer = await this.downloadService.fetch(url);
       const childImage = await Jimp.read(childImageBuffer);
 
       jimpImage.composite(childImage, 0, 0);
