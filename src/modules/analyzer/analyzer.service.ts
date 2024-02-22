@@ -1,10 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { RenderImage, RenderTokenInfo, RmqPatterns, TokenInfo } from '../../types';
-import { ClientProxy } from '@nestjs/microservices';
-import { lastValueFrom } from 'rxjs';
+import { RenderImage, RenderTokenInfo, JobName, TokenInfo } from '../../types';
 import { TokenByIdResponse } from '@unique-nft/sdk';
 import { SdkService } from '../sdk';
-import { InjectRenderQueue, getLoggerPrefix } from '../utils';
+import { getLoggerPrefix, getJobId, InjectRenderQueue } from '../utils';
+import { Queue } from 'bullmq';
 
 @Injectable()
 export class AnalyzerService {
@@ -12,7 +11,7 @@ export class AnalyzerService {
 
   constructor(
     private readonly sdkService: SdkService,
-    @InjectRenderQueue private renderQueue: ClientProxy,
+    @InjectRenderQueue private readonly renderQueue: Queue,
   ) {}
 
   private getTokenImageLayer(
@@ -48,7 +47,7 @@ export class AnalyzerService {
 
   public async buildToken(tokenInfo: TokenInfo): Promise<void> {
     this.logger.log(`${getLoggerPrefix(tokenInfo)} Going to build token`);
-    const { chain, collectionId, tokenId } = tokenInfo;
+    const { chain, collectionId, tokenId, priority } = tokenInfo;
 
     const [bundle, token] = await Promise.all([
       this.sdkService.getBundle({ chain, collectionId, tokenId }),
@@ -82,7 +81,7 @@ export class AnalyzerService {
       images,
     };
 
-    await lastValueFrom(this.renderQueue.emit(RmqPatterns.RENDER_IMAGES, renderInfo));
+    await this.renderQueue.add(JobName.RENDER_IMAGES, renderInfo, { jobId: getJobId(tokenInfo), priority });
 
     this.logger.log(`${getLoggerPrefix(tokenInfo)} Token build complete, images sent to render queue`);
   }

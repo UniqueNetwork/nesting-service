@@ -11,6 +11,7 @@ export interface CollectionInfo {
 
 export interface TokenInfo extends CollectionInfo {
   tokenId: number;
+  priority?: number;
 }
 
 export interface RenderImage {

@@ -1,12 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { CollectionData } from '@unique-nft/sdk';
-import { ClientProxy } from '@nestjs/microservices';
-import { catchError } from 'rxjs';
 
-import { ChainType, RmqPatterns, TokenInfo } from '../../types';
+import { ChainType, JobName, TokenInfo } from '../../types';
 import { SdkService } from '../sdk';
 import { recognizers } from './recognizers';
-import { InjectAnalyzerQueue, getLoggerPrefix } from '../utils';
+import { getJobId, getLoggerPrefix, InjectAnalyzerQueue } from '../utils';
+import { Queue } from 'bullmq';
 
 @Injectable()
 export class SubscriberService {
@@ -16,7 +15,7 @@ export class SubscriberService {
 
   constructor(
     private readonly sdk: SdkService,
-    @InjectAnalyzerQueue private analyzerQueue: ClientProxy,
+    @InjectAnalyzerQueue private readonly analyzerQueue: Queue,
   ) {
     sdk.subscribe(this.onEvent.bind(this));
   }
@@ -45,7 +44,8 @@ export class SubscriberService {
       tokenId: bundle.tokenId,
     };
 
-    this.enqueueToken(rootToken);
+    await this.enqueueToken(rootToken);
+    this.logger.log(`${getLoggerPrefix(rootToken)} Enqueued token`);
   }
 
   private extractTokenFromEvent(chain: ChainType, eventData: CollectionData): TokenInfo | null {
@@ -62,17 +62,7 @@ export class SubscriberService {
     return null;
   }
 
-  private enqueueToken(token: TokenInfo) {
-    const sendResult = this.analyzerQueue.emit<any, TokenInfo>(RmqPatterns.BUILD_TOKEN, token);
-
-    sendResult
-      .pipe(
-        catchError((err) => {
-          this.logger.error(`${getLoggerPrefix(token)} Failed add token to queue: ${err}`);
-
-          return err;
-        }),
-      )
-      .subscribe();
+  private async enqueueToken(token: TokenInfo) {
+    await this.analyzerQueue.add(JobName.BUILD_TOKEN, token, { jobId: getJobId(token) });
   }
 }

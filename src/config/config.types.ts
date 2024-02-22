@@ -9,9 +9,18 @@ export interface AuthConfig {
   jwtExpiresTime: number;
 }
 
-export interface RabbitMQConfig {
-  urls: string[];
-  prefetchCount: number;
+export interface RedisConfig {
+  host: string;
+  port: number;
+}
+
+export interface QueuesConfig {
+  analyzer: {
+    concurrency: number;
+  };
+  render: {
+    concurrency: number;
+  };
 }
 
 export interface SdkConfig {
@@ -46,7 +55,8 @@ export interface FetchConfig {
 export interface AppConfig {
   api: ApiConfig;
   auth: AuthConfig;
-  rmq: RabbitMQConfig;
+  redis: RedisConfig;
+  queues: QueuesConfig;
   sdk: SdkConfig;
   render: RenderConfig;
   minio: MinioConfig;

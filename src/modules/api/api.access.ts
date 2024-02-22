@@ -59,21 +59,27 @@ export class ApiAccess {
     }
   }
 
-  public async checkCollectionAccess(address: string, collectionInfo: CollectionInfo) {
-    const isAddress = checkAddressEqual(address);
-    const isAdmin = this.adminsConfig.adminsAddressList.some(isAddress);
-
-    if (!isAdmin) {
-      await this.checkCollectionOwner(address, collectionInfo);
+  public checkIsAdmin(address: string) {
+    if (!this.isAdmin(address)) {
+      throw new UnauthorizedException('You are not an admin');
     }
   }
 
-  public async checkTokenAccess(address: string, tokenInfo: TokenInfo) {
-    const isAddress = checkAddressEqual(address);
-    const isAdmin = this.adminsConfig.adminsAddressList.some(isAddress);
+  public isAdmin(address: string) {
+    const isEqual = checkAddressEqual(address);
 
-    if (!isAdmin) {
-      await this.checkTokenOwner(address, tokenInfo);
-    }
+    return this.adminsConfig.adminsAddressList.some(isEqual);
+  }
+
+  public async checkCollectionAccess(address: string, collectionInfo: CollectionInfo) {
+    if (this.isAdmin(address)) return;
+
+    await this.checkCollectionOwner(address, collectionInfo);
+  }
+
+  public async checkTokenAccess(address: string, tokenInfo: TokenInfo) {
+    if (this.isAdmin(address)) return;
+
+    await this.checkTokenOwner(address, tokenInfo);
   }
 }

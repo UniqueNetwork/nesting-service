@@ -46,4 +46,13 @@ export class ApiController {
     const { jwtPayload } = req;
     return this.apiService.buildCollection(jwtPayload.address, body);
   }
+
+  @UsePipes(createValidationPipe())
+  @Get('queues-status')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth('JWT')
+  async getQueuesStatus(@Req() req: Request) {
+    const { jwtPayload } = req;
+    return this.apiService.getQueuesStatus(jwtPayload.address);
+  }
 }

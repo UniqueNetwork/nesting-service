@@ -6,7 +6,8 @@ import {
   FetchConfig,
   LoggerConfig,
   MinioConfig,
-  RabbitMQConfig,
+  RedisConfig,
+  QueuesConfig,
   RenderConfig,
   SdkConfig,
 } from './config.types';
@@ -34,9 +35,18 @@ const loadAuth = (): AuthConfig => ({
   jwtExpiresTime: +getStringOrThrow('JWT_EXPIRES_TIME', '3600'),
 });
 
-const loadRmq = (): RabbitMQConfig => ({
-  urls: [getStringOrThrow('RABBIT_MQ_URL')],
-  prefetchCount: +getStringOrThrow('RABBIT_MQ_PREFETCH_COUNT', '10'),
+const loadRedis = (): RedisConfig => ({
+  host: getStringOrThrow('REDIS_HOST', 'localhost'),
+  port: +getStringOrThrow('REDIS_PORT', '6379'),
+});
+
+const loadQueues = (): QueuesConfig => ({
+  analyzer: {
+    concurrency: +getStringOrThrow('QUEUES_ANALYZER_CONCURRENCY', '5'),
+  },
+  render: {
+    concurrency: +getStringOrThrow('QUEUES_RENDER_CONCURRENCY', '5'),
+  },
 });
 
 const loadSdk = (): SdkConfig => ({
@@ -100,7 +110,8 @@ export const configLoad = (): AppConfig => {
   return {
     api: loadApi(),
     auth: loadAuth(),
-    rmq: loadRmq(),
+    redis: loadRedis(),
+    queues: loadQueues(),
     sdk: loadSdk(),
     render: loadRender(),
     minio: loadMinio(),
