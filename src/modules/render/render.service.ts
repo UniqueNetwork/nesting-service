@@ -29,26 +29,35 @@ export class RenderService {
     const imageBuffer = await this.imageFetchService.fetchWithCache(firstImage.url);
     const jimpImage = await Jimp.read(imageBuffer);
 
-    for (const { url } of restImages) {
+    for (const image of restImages) {
+      const { url, specs } = image;
+
       const childImageBuffer = await this.imageFetchService.fetchWithCache(url);
       const childImage = await Jimp.read(childImageBuffer);
+      childImage.rotate(specs.rotation);
 
-      jimpImage.composite(childImage, 0, 0);
+      jimpImage.composite(childImage, specs.position.x, specs.position.y, {
+        opacityDest: 100,
+        opacitySource: specs.opacity,
+        mode: '',
+      });
     }
 
     return jimpImage;
   }
 
   public async render(renderInfo: RenderTokenInfo): Promise<void> {
-    const { images, tokenInfo } = renderInfo;
+    const { image, tokenInfo } = renderInfo;
 
     this.logger.log(`${getLoggerPrefix(tokenInfo)} Rendering token`);
-    this.logger.debug(`${getLoggerPrefix(tokenInfo)} Images: ${JSON.stringify(images)}`);
+    this.logger.debug(`${getLoggerPrefix(tokenInfo)} Image: ${JSON.stringify(image)}`);
 
-    const mergedJimp = await this.mergeImages(images);
+    const mergedJimp = await this.mergeImages([image, ...image.children]);
 
     const extension = mergedJimp.getExtension();
     const filename = `${tokenInfo.chain}/${tokenInfo.collectionId}/${tokenInfo.tokenId}.${extension}`;
+
+    await mergedJimp.writeAsync('render-images/' + filename);
 
     const content = await mergedJimp.getBufferAsync(mergedJimp.getMIME());
 

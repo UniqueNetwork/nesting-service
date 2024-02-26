@@ -1,12 +1,13 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { RenderImage, RenderTokenInfo, JobName, TokenInfo } from '../../types';
-import { TokenByIdResponse } from '@unique-nft/sdk';
+import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
+import { RenderImage, RenderTokenInfo, JobName, TokenInfo, RenderParentImage, RenderImageSpecs } from '../../types';
 import { SdkService } from '../sdk';
 import { getLoggerPrefix, getJobId, InjectRenderQueue } from '../utils';
 import { Queue } from 'bullmq';
+import { IV2Token, IV2CustomizingImageOverlaySpecs } from '@unique-nft/schemas';
+import merge from 'lodash.merge';
 
 @Injectable()
-export class AnalyzerService {
+export class AnalyzerService implements OnApplicationBootstrap {
   private logger = new Logger(AnalyzerService.name);
 
   constructor(
@@ -14,71 +15,110 @@ export class AnalyzerService {
     @InjectRenderQueue private readonly renderQueue: Queue,
   ) {}
 
-  private getTokenImageLayer(
-    chain: string,
-    token: TokenByIdResponse,
-    searchImageOutsideOfSchema: boolean,
-  ): RenderImage | null {
-    if (token.file && token.file.fullUrl) {
-      return {
-        url: token.file.fullUrl,
-      };
+  public async onApplicationBootstrap(): Promise<void> {
+    await this.buildToken({ chain: 'opal', collectionId: 2444, tokenId: 1 });
+  }
+
+  private getImageSpecs(specs: IV2CustomizingImageOverlaySpecs | undefined): RenderImageSpecs {
+    const specsSafe = specs || {};
+
+    return {
+      order: [specsSafe.layer || 0, specsSafe.order_in_layer || 0],
+      position: {
+        x: specsSafe.offset?.x || 0,
+        y: specsSafe.offset?.y || 0,
+      },
+      scale: {
+        x: specsSafe.scale?.x || 0,
+        y: specsSafe.scale?.y || 0,
+      },
+      opacity: specsSafe.opacity || 100,
+      rotation: specsSafe.rotation || 0,
+    };
+  }
+
+  private getImage(schema: IV2Token, parent?: RenderImage): RenderImage | null {
+    console.log(`
+****** token schema begin ******
+${JSON.stringify(schema, null, 2)}
+******* token schema end *******`);
+    if (!schema.customizing) {
+      return null;
+    }
+    const { customizing } = schema;
+
+    if (customizing.self?.type !== 'image' || !customizing.self?.url) {
+      return null;
     }
 
-    if (token.image.fullUrl) {
-      return {
-        url: token.image.fullUrl,
-      };
+    const specs = this.getImageSpecs(customizing?.self.image_overlay_specs);
+    const fullSpecs = parent ? merge({}, parent.specs, specs) : specs;
+    // const fullSpecs = parent ? specs : specs;
+
+    return {
+      url: customizing.self.url,
+      specs: fullSpecs,
+    };
+  }
+
+  private getParentImage(parentSchema: IV2Token, childrenSchemas: IV2Token[]): RenderParentImage | null {
+    const parentImage = this.getImage(parentSchema);
+    if (!parentImage || !parentSchema.customizing?.slots) {
+      return null;
     }
 
-    if (searchImageOutsideOfSchema) {
-      for (const prop of token.properties) {
-        if (prop.key == 'i.u') {
-          return {
-            url: prop.value,
-          };
-        }
-      }
-    }
-
-    this.logger.warn(`${getLoggerPrefix({ ...token, chain })} Couldn't find an image for token!`);
-    return null;
+    return {
+      ...parentImage,
+      children: childrenSchemas
+        .filter(
+          (schema) =>
+            parentSchema.customizing?.slots &&
+            schema.customizing?.self?.tag &&
+            schema.customizing?.self?.tag in parentSchema.customizing?.slots,
+        )
+        .map((schema) => this.getImage(schema, parentImage))
+        .filter((renderImage) => !!renderImage) as RenderImage[],
+    };
   }
 
   public async buildToken(tokenInfo: TokenInfo): Promise<void> {
     this.logger.log(`${getLoggerPrefix(tokenInfo)} Going to build token`);
     const { chain, collectionId, tokenId, priority } = tokenInfo;
 
-    const [bundle, token] = await Promise.all([
+    const [bundle, schema] = await Promise.all([
       this.sdkService.getBundle({ chain, collectionId, tokenId }),
-      this.sdkService.getToken({ chain, collectionId, tokenId }),
+      this.sdkService.getTokenSchemaV2(chain, collectionId, tokenId),
     ]);
 
-    const nestedTokensPromises = bundle.nestingChildTokens.map((nested) =>
-      this.sdkService.getToken({
-        chain,
-        collectionId: nested.collectionId,
-        tokenId: nested.tokenId,
-      }),
-    );
+    if (!schema) {
+      this.logger.log(`${getLoggerPrefix(tokenInfo)} No found token.`);
+      return;
+    }
 
-    const nestedTokens = await Promise.all(nestedTokensPromises);
+    const nestedTokens = (
+      await Promise.all(
+        bundle.nestingChildTokens.map((nested) =>
+          this.sdkService.getTokenSchemaV2(chain, nested.collectionId, nested.tokenId),
+        ),
+      )
+    ).filter((token) => !!token) as IV2Token[];
 
-    const tokens = [token, ...nestedTokens];
+    const image = this.getParentImage(schema, nestedTokens);
 
-    const images: RenderImage[] = tokens
-      .map((token) => this.getTokenImageLayer(chain, token, true))
-      .filter((image): image is RenderImage => !!image);
-
-    if (!images.length) {
+    if (!image || !image.children.length) {
       this.logger.log(`${getLoggerPrefix(tokenInfo)} No images for token, ignoring.`);
 
       return;
     }
 
+    console.log(`
+****** image begin ******
+${JSON.stringify(image, null, 2)}
+****** image end *******\`);`);
+
     const renderInfo: RenderTokenInfo = {
       tokenInfo,
-      images,
+      image,
     };
 
     await this.renderQueue.add(JobName.RENDER_IMAGES, renderInfo, { jobId: getJobId(tokenInfo), priority });

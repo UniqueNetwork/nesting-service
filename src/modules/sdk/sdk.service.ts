@@ -4,6 +4,8 @@ import { ChainType, CollectionInfo, SubscribeCallback, TokenInfo } from '../../t
 import { ConfigService } from '@nestjs/config';
 import { SdkConfig } from '../../config';
 import { Sdk, SubscriptionEvents } from '@unique-nft/sdk/full';
+import ChainLenses from '@unique-nft/utils/chainLens';
+import { SchemaTools, IV2Token } from '@unique-nft/schemas';
 
 @Injectable()
 export class SdkService {
@@ -23,6 +25,8 @@ export class SdkService {
 
   public subscribe(callback: SubscribeCallback) {
     Object.entries(this.sdkByChain).forEach(([chain, sdk]) => {
+      if (chain !== 'opal') return;
+
       const socketClient = sdk.subscription.connect();
 
       socketClient.on(SubscriptionEvents.COLLECTIONS, (root: Room, eventData: CollectionData) =>
@@ -86,5 +90,16 @@ export class SdkService {
     });
 
     return ids;
+  }
+
+  public async getTokenSchemaV2(chain: string, collectionId: number, tokenId: number): Promise<IV2Token | null> {
+    const token = await ChainLenses.opal.requestNftToken(collectionId, tokenId);
+    if (!token) return null;
+    try {
+      return await SchemaTools.decode.token(token.properties);
+    } catch (err) {
+      console.error(`fail decode token schema for collection: ${collectionId}x${tokenId}`, err);
+      return null;
+    }
   }
 }
