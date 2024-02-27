@@ -14,18 +14,18 @@ export interface TokenInfo extends CollectionInfo {
   priority?: number;
 }
 
+export interface RenderPoint {
+  x: number;
+  y: number;
+}
+
 export interface RenderImageSpecs {
   order: number[];
-  position: {
-    x: number;
-    y: number;
-  };
-  scale: {
-    x: number;
-    y: number;
-  };
+  offset: RenderPoint;
+  scale: RenderPoint;
   opacity: number;
   rotation: number;
+  anchor: RenderPoint;
 }
 
 export interface RenderImage {

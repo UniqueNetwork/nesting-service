@@ -1,49 +1,51 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { FileForUpload, RenderImage, RenderTokenInfo } from '../../types';
+import { FileForUpload, RenderImage, RenderParentImage, RenderTokenInfo } from '../../types';
 import Jimp from 'jimp';
-import { ConfigService } from '@nestjs/config';
-import { RenderConfig } from '../../config';
 import { MinioService } from '../storage';
 import { ImageFetchService } from './image-fetch.service';
 import { getLoggerPrefix } from '../utils';
+import { rotateImage, scaleImage } from './jimp-utils';
 
 @Injectable()
 export class RenderService {
   private logger = new Logger(RenderService.name);
 
-  private renderConfig: RenderConfig;
-
   constructor(
-    config: ConfigService,
     private readonly minioService: MinioService,
     private readonly imageFetchService: ImageFetchService,
-  ) {
-    this.renderConfig = config.getOrThrow<RenderConfig>('render');
+  ) {}
+
+  private async createSampleJimp(image: RenderImage): Promise<Jimp> {
+    const buffer = await this.imageFetchService.fetchWithCache(image.url);
+    return Jimp.read(buffer);
   }
 
-  private async mergeImages(images: RenderImage[]): Promise<Jimp> {
-    if (!images.length) throw new Error('no images to merge');
+  private async createBundleJimp(parent: RenderImage, children: RenderImage[]): Promise<Jimp> {
+    if (!parent || !children.length) throw new Error('no images to merge');
 
-    const [firstImage, ...restImages] = images;
+    const parentJimp = await this.createSampleJimp(parent);
 
-    const imageBuffer = await this.imageFetchService.fetchWithCache(firstImage.url);
-    const jimpImage = await Jimp.read(imageBuffer);
+    for (const image of children) {
+      const { specs } = image;
 
-    for (const image of restImages) {
-      const { url, specs } = image;
+      const childJimp = await this.createJimp(image);
 
-      const childImageBuffer = await this.imageFetchService.fetchWithCache(url);
-      const childImage = await Jimp.read(childImageBuffer);
-      childImage.rotate(specs.rotation);
+      const scaleShift = scaleImage(childJimp, specs);
 
-      jimpImage.composite(childImage, specs.position.x, specs.position.y, {
-        opacityDest: 100,
-        opacitySource: specs.opacity,
-        mode: '',
-      });
+      rotateImage(parentJimp, childJimp, specs, scaleShift);
+
+      // await drawPoint(jimpImage, specs.anchor.x, specs.anchor.y);
     }
 
-    return jimpImage;
+    return parentJimp;
+  }
+
+  private async createJimp(image: RenderImage | RenderParentImage): Promise<Jimp> {
+    if ('children' in image && image.children.length) {
+      return this.createBundleJimp(image, image.children);
+    } else {
+      return this.createSampleJimp(image);
+    }
   }
 
   public async render(renderInfo: RenderTokenInfo): Promise<void> {
@@ -52,7 +54,7 @@ export class RenderService {
     this.logger.log(`${getLoggerPrefix(tokenInfo)} Rendering token`);
     this.logger.debug(`${getLoggerPrefix(tokenInfo)} Image: ${JSON.stringify(image)}`);
 
-    const mergedJimp = await this.mergeImages([image, ...image.children]);
+    const mergedJimp = await this.createJimp(image);
 
     const extension = mergedJimp.getExtension();
     const filename = `${tokenInfo.chain}/${tokenInfo.collectionId}/${tokenInfo.tokenId}.${extension}`;

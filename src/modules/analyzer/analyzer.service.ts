@@ -5,6 +5,7 @@ import { getLoggerPrefix, getJobId, InjectRenderQueue } from '../utils';
 import { Queue } from 'bullmq';
 import { IV2Token, IV2CustomizingImageOverlaySpecs } from '@unique-nft/schemas';
 import merge from 'lodash.merge';
+import { orderValue } from './utils';
 
 @Injectable()
 export class AnalyzerService implements OnApplicationBootstrap {
@@ -16,7 +17,7 @@ export class AnalyzerService implements OnApplicationBootstrap {
   ) {}
 
   public async onApplicationBootstrap(): Promise<void> {
-    await this.buildToken({ chain: 'opal', collectionId: 2444, tokenId: 1 });
+    await this.buildToken({ chain: 'opal', collectionId: 2444, tokenId: 6 });
   }
 
   private getImageSpecs(specs: IV2CustomizingImageOverlaySpecs | undefined): RenderImageSpecs {
@@ -24,7 +25,7 @@ export class AnalyzerService implements OnApplicationBootstrap {
 
     return {
       order: [specsSafe.layer || 0, specsSafe.order_in_layer || 0],
-      position: {
+      offset: {
         x: specsSafe.offset?.x || 0,
         y: specsSafe.offset?.y || 0,
       },
@@ -34,6 +35,10 @@ export class AnalyzerService implements OnApplicationBootstrap {
       },
       opacity: specsSafe.opacity || 100,
       rotation: specsSafe.rotation || 0,
+      anchor: {
+        x: specsSafe.mount_point?.x || 0,
+        y: specsSafe.mount_point?.y || 0,
+      },
     };
   }
 
@@ -67,17 +72,24 @@ ${JSON.stringify(schema, null, 2)}
       return null;
     }
 
+    const children: RenderImage[] = childrenSchemas
+      .filter(
+        (schema) =>
+          parentSchema.customizing?.slots &&
+          schema.customizing?.self?.tag &&
+          schema.customizing?.self?.tag in parentSchema.customizing?.slots,
+      )
+      .map((schema) => this.getImage(schema, parentImage))
+      .filter((renderImage) => !!renderImage)
+      .sort((i1, i2) => {
+        const v1 = orderValue(i1?.specs.order || []);
+        const v2 = orderValue(i2?.specs.order || []);
+        return v2 - v1;
+      }) as RenderImage[];
+
     return {
       ...parentImage,
-      children: childrenSchemas
-        .filter(
-          (schema) =>
-            parentSchema.customizing?.slots &&
-            schema.customizing?.self?.tag &&
-            schema.customizing?.self?.tag in parentSchema.customizing?.slots,
-        )
-        .map((schema) => this.getImage(schema, parentImage))
-        .filter((renderImage) => !!renderImage) as RenderImage[],
+      children,
     };
   }
 
