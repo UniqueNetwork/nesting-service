@@ -7,6 +7,7 @@ import { recognizers } from './recognizers';
 import { getJobId, getLoggerPrefix, InjectAnalyzerQueue } from '../utils';
 import { Queue } from 'bullmq';
 
+
 @Injectable()
 export class SubscriberService {
   private readonly logger = new Logger('SubscriberService');
@@ -43,6 +44,14 @@ export class SubscriberService {
       collectionId: bundle.collectionId,
       tokenId: bundle.tokenId,
     };
+
+    const imageObject = bundle.image as { fullUrl?: string, url?: string } | undefined;
+    const isUsingNestingService = imageObject?.fullUrl?.includes('nesting') || imageObject?.url?.includes('nesting');
+
+    if (!isUsingNestingService) {
+      this.logger.log(`${getLoggerPrefix(rootToken)} Token is not using nesting service, ignoring token`);
+      return;
+    }
 
     await this.enqueueToken(rootToken);
     this.logger.log(`${getLoggerPrefix(rootToken)} Enqueued token`);
